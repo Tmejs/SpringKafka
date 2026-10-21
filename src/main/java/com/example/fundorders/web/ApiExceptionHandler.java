@@ -8,6 +8,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -24,5 +25,12 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiError> publishFailure(PublishFailedException ex) {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ApiError("KAFKA_UNAVAILABLE", "Message was not acknowledged by Kafka"));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiError> statusFailure(ResponseStatusException ex) {
+        var code = ex.getStatusCode().value() == 404 ? "NOT_FOUND" : "INVALID_REQUEST";
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(new ApiError(code, ex.getReason()));
     }
 }

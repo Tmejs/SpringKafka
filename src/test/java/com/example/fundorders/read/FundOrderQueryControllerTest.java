@@ -51,7 +51,8 @@ class FundOrderQueryControllerTest {
     @Test
     void rejectsOutOfRangePageSize() throws Exception {
         mvc.perform(get("/api/v1/fund-order-events?size=101"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
         mvc.perform(get("/api/v1/fund-order-events?page=-1"))
                 .andExpect(status().isBadRequest());
     }
@@ -65,7 +66,8 @@ class FundOrderQueryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REJECTED"));
         mvc.perform(get("/api/v1/fund-order-events/" + UUID.randomUUID()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
     private static ProcessedFundOrderEvent storedEvent() {
