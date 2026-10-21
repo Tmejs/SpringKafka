@@ -1,0 +1,75 @@
+asyncapi: '2.6.0'
+info:
+  title: Fund Order Event Kafka Contract
+  version: 0.1.0
+  description: The application publishes and batch-consumes a JSON string; permanent defects are published to the DLQ.
+servers:
+  local:
+    url: localhost:9092
+    protocol: kafka
+channels:
+  fund-order-events:
+    description: Configurable using APP_KAFKA_TOPIC. Typed events use orderId as key; raw events use a generated key.
+    publish:
+      summary: The application publishes typed or raw event text.
+      message:
+        $ref: '#/components/messages/FundOrderEvent'
+    subscribe:
+      summary: The application consumes records in batches and validates each value.
+      message:
+        $ref: '#/components/messages/FundOrderEvent'
+  fund-order-events.DLQ:
+    description: Configurable using APP_KAFKA_DLQ_TOPIC. Partition count must be at least the source count.
+    publish:
+      summary: The application publishes the original value for permanent content failures.
+      message:
+        $ref: '#/components/messages/DeadLetter'
+components:
+  messages:
+    FundOrderEvent:
+      name: FundOrderStatusEvent
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FundOrderStatusEvent'
+      description: Raw publishing may send a nonconforming value; the consumer routes such records to the DLQ.
+    DeadLetter:
+      name: FailedFundOrderEvent
+      contentType: text/plain
+      payload:
+        type: string
+        description: Original source value, possibly malformed JSON.
+      headers:
+        type: object
+        properties:
+          kafka_dlt-original-topic:
+            type: string
+          kafka_dlt-original-offset:
+            type: integer
+          kafka_dlt-exception-fqcn:
+            type: string
+  schemas:
+    FundOrderStatusEvent:
+      type: object
+      required: [schemaVersion, eventId, orderId, partnerCode, fundIsin, status, occurredAt]
+      properties:
+        schemaVersion:
+          type: integer
+          enum: [1]
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        partnerCode:
+          type: string
+          pattern: '^[A-Z0-9_]{2,32}$'
+        fundIsin:
+          type: string
+          pattern: '^[A-Z]{2}[A-Z0-9]{10}$'
+        status:
+          type: string
+          enum: [ACCEPTED, REJECTED, EXECUTED]
+        occurredAt:
+          type: string
+          format: date-time

@@ -1,0 +1,6 @@
+target
+.git
+.worktrees
+.env
+.superpowers
+codex/reports/coverage
