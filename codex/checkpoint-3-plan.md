@@ -19,10 +19,10 @@
 
 ### Task 1: Reorganize application and tests
 
-- [ ] Move application classes and corresponding tests, updating declarations and imports.
-- [ ] Update the README package map and security extension link.
-- [ ] Run clean verify and git diff --check; inspect remaining references and package alignment.
-- [ ] Obtain independent review and resolve Important/Critical findings.
-- [ ] Record verification and refresh generated coverage before committing final records.
+- [x] Move application classes and corresponding tests, updating declarations and imports.
+- [x] Update the README package map and security extension link.
+- [x] Run clean verify and git diff --check; inspect remaining references and package alignment.
+- [x] Obtain independent review and resolve Important/Critical findings.
+- [x] Record verification and refresh generated coverage before committing final records.
 
 Release follows the user's checkpoint workflow: push branch, merge --no-ff into synchronized main, verify merged main, push main, and compare SHAs.
