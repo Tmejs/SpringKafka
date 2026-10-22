@@ -11,6 +11,10 @@ app:
     concurrency: ${APP_KAFKA_CONCURRENCY:1}
     partitions: ${APP_KAFKA_PARTITIONS:3}
 spring:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
@@ -24,6 +28,10 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        max.block.ms: ${APP_KAFKA_PRODUCER_MAX_BLOCK_MS:3000}
+        request.timeout.ms: ${APP_KAFKA_PRODUCER_REQUEST_TIMEOUT_MS:3000}
+        delivery.timeout.ms: ${APP_KAFKA_PRODUCER_DELIVERY_TIMEOUT_MS:5000}
 management:
   endpoints:
     web:

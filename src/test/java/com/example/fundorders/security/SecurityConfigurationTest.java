@@ -1,12 +1,15 @@
 package com.example.fundorders.security;
 
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.fundorders.read.FundOrderQueryController;
 import com.example.fundorders.store.ProcessedEventRepository;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -32,7 +35,7 @@ class SecurityConfigurationTest {
 
     @Test
     void credentialsAreRequiredForConsumedData() throws Exception {
-        when(repository.count()).thenReturn(0L);
+        when(repository.findPage(any())).thenReturn(new PageImpl<>(List.of()));
         mvc.perform(get("/api/v1/fund-order-events")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/v1/fund-order-events").with(request -> {
             request.addHeader("Authorization", "Basic YW5hbHlzdDp3cm9uZw==");

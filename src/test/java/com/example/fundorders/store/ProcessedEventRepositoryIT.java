@@ -11,33 +11,37 @@ import com.example.fundorders.event.FundOrderStatusEvent;
 import com.example.fundorders.event.InvalidEventException;
 import com.example.fundorders.event.OrderStatus;
 import jakarta.validation.Validation;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.json.JsonMapper;
 
 @Testcontainers
+@DataJpaTest
 class ProcessedEventRepositoryIT {
     @Container
     static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
 
+    @Autowired
     private ProcessedEventRepository repository;
     private ProcessedEventService service;
 
+    @DynamicPropertySource
+    static void databaseProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+    }
+
     @BeforeEach
     void setUp() {
-        var dataSource = new DriverManagerDataSource(postgres.getJdbcUrl(),
-                postgres.getUsername(), postgres.getPassword());
-        Flyway.configure().dataSource(dataSource).load().migrate();
-        var jdbc = new NamedParameterJdbcTemplate(dataSource);
-        jdbc.getJdbcTemplate().update("DELETE FROM processed_fund_order_events");
-        repository = new ProcessedEventRepository(jdbc);
         service = new ProcessedEventService(repository,
                 new FundOrderEventCodec(JsonMapper.builder().findAndAddModules().build(),
                         Validation.buildDefaultValidatorFactory().getValidator()));
@@ -80,10 +84,10 @@ class ProcessedEventRepositoryIT {
         service.process(second);
         service.process(newest);
 
-        assertThat(repository.findPage(PageRequest.of(0, 2)))
+        assertThat(repository.findPage(PageRequest.of(0, 2)).getContent())
                 .extracting(ProcessedFundOrderEvent::eventId)
                 .containsExactly(newest.eventId(), second.eventId());
-        assertThat(repository.findPage(PageRequest.of(1, 2)))
+        assertThat(repository.findPage(PageRequest.of(1, 2)).getContent())
                 .extracting(ProcessedFundOrderEvent::eventId)
                 .containsExactly(first.eventId());
     }

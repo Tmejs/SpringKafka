@@ -20,6 +20,7 @@ import com.example.fundorders.web.ApiExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -36,8 +37,7 @@ class FundOrderQueryControllerTest {
     @Test
     void returnsStablePaginatedView() throws Exception {
         var event = storedEvent();
-        when(repository.findPage(any())).thenReturn(List.of(event));
-        when(repository.count()).thenReturn(1L);
+        when(repository.findPage(any())).thenReturn(new PageImpl<>(List.of(event)));
 
         mvc.perform(get("/api/v1/fund-order-events?page=0&size=20"))
                 .andExpect(status().isOk())
@@ -55,6 +55,12 @@ class FundOrderQueryControllerTest {
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
         mvc.perform(get("/api/v1/fund-order-events?page=-1"))
                 .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/fund-order-events?page=abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        mvc.perform(get("/api/v1/fund-order-events/not-a-uuid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
     }
 
     @Test

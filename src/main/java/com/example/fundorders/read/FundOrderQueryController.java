@@ -30,8 +30,8 @@ public class FundOrderQueryController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "page must be nonnegative and size must be between 1 and 100");
         }
-        return new EventPage(repository.findPage(PageRequest.of(page, size)),
-                page, size, repository.count());
+        var result = repository.findPage(PageRequest.of(page, size));
+        return new EventPage(result.getContent(), page, size, result.getTotalElements());
     }
 
     @GetMapping("/{eventId}")
