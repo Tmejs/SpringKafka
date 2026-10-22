@@ -30,9 +30,11 @@
 
 **Interfaces:** Existing listener factory, KafkaTemplate, KafkaListenerEndpointRegistry, ProcessedEventRepository, and real Kafka Admin offset queries.
 
-- [ ] Add the two integration tests and test-only observation/failure controls.
-- [ ] Run focused integration tests and resolve fixture or assertion failures.
-- [ ] Run negative controls to establish that the assertions reject the intended regressions.
-- [ ] Restore production source; run the complete local verification gate and git diff --check.
-- [ ] Request independent read-only review and resolve Important/Critical findings.
-- [ ] Record evidence, refresh the generated coverage snapshot, commit, push, merge --no-ff, verify merged main, and confirm remote SHAs.
+- [x] Add the two integration tests and test-only observation/failure controls.
+- [x] Run focused integration tests and resolve fixture or assertion failures.
+- [x] Run negative controls to establish that the assertions reject the intended regressions.
+- [x] Restore production source; run the complete local verification gate and git diff --check.
+- [x] Request independent read-only review and resolve Important/Critical findings.
+- [x] Record evidence and refresh the generated coverage snapshot for the final records commit.
+
+Release workflow: push the checkpoint, merge --no-ff, verify merged main, push main, and confirm local/tracking/remote SHAs.
