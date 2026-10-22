@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EventPublisher.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fund-orders</a> &gt; <a href="index.source.html" class="el_package">com.example.fundorders.publish</a> &gt; <span class="el_source">EventPublisher.java</span></div><h1>EventPublisher.java</h1><pre class="source lang-java linenums">package com.example.fundorders.publish;
+
+import java.time.Duration;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import com.example.fundorders.event.FundOrderEventCodec;
+import com.example.fundorders.event.FundOrderStatusEvent;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+
+@Service
+public class EventPublisher {
+    private final KafkaTemplate&lt;String, String&gt; template;
+    private final FundOrderEventCodec codec;
+    private final String topic;
+    private final Duration sendTimeout;
+
+    public EventPublisher(KafkaTemplate&lt;String, String&gt; template, FundOrderEventCodec codec,
+            @Value(&quot;${app.kafka.topic}&quot;) String topic,
+<span class="fc" id="L25">            @Value(&quot;${app.kafka.send-timeout:5s}&quot;) Duration sendTimeout) {</span>
+<span class="fc" id="L26">        this.template = template;</span>
+<span class="fc" id="L27">        this.codec = codec;</span>
+<span class="fc" id="L28">        this.topic = topic;</span>
+<span class="fc" id="L29">        this.sendTimeout = sendTimeout;</span>
+<span class="fc" id="L30">    }</span>
+
+    public PublishReceipt publish(FundOrderStatusEvent event) {
+<span class="fc" id="L33">        return send(event.orderId().toString(), codec.encode(event));</span>
+    }
+
+    public PublishReceipt publishRaw(String raw) {
+<span class="fc" id="L37">        return send(UUID.randomUUID().toString(), raw);</span>
+    }
+
+    private PublishReceipt send(String key, String value) {
+<span class="fc" id="L41">        var startedAt = System.nanoTime();</span>
+        try {
+<span class="fc" id="L43">            var record = new ProducerRecord&lt;&gt;(topic, key, value);</span>
+<span class="fc" id="L44">            var result = template.send(record);</span>
+<span class="fc" id="L45">            var remaining = sendTimeout.toNanos() - (System.nanoTime() - startedAt);</span>
+<span class="pc bpc" id="L46" title="1 of 2 branches missed.">            if (remaining &lt;= 0) {</span>
+<span class="nc" id="L47">                throw new TimeoutException(&quot;Kafka publication exceeded the configured timeout&quot;);</span>
+            }
+<span class="fc" id="L49">            var metadata = result.get(remaining, TimeUnit.NANOSECONDS)</span>
+<span class="fc" id="L50">                    .getRecordMetadata();</span>
+<span class="fc" id="L51">            return new PublishReceipt(metadata.topic(), metadata.partition(), metadata.offset(), key);</span>
+<span class="nc" id="L52">        } catch (InterruptedException ex) {</span>
+<span class="nc" id="L53">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L54">            throw new PublishFailedException(&quot;Kafka publication interrupted&quot;, ex);</span>
+<span class="fc" id="L55">        } catch (ExecutionException | TimeoutException | RuntimeException ex) {</span>
+<span class="fc" id="L56">            throw new PublishFailedException(&quot;Kafka did not acknowledge publication&quot;, ex);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
