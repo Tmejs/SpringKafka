@@ -129,6 +129,16 @@ class FundOrderFlowIT {
     }
 
     @Test
+    void rawUtf8TextReachesDlqWithoutCharacterChanges() throws Exception {
+        var malformedJson = "é";
+
+        assertThat(postRaw(malformedJson).statusCode()).isEqualTo(202);
+        assertThat(deadLettersFor(List.of(malformedJson)))
+                .extracting(ConsumerRecord::value)
+                .containsExactly(malformedJson);
+    }
+
+    @Test
     void identicalReplayIsIdempotentAndConflictingReplayGoesToDlq() throws Exception {
         var eventId = UUID.randomUUID();
         var orderId = UUID.randomUUID();

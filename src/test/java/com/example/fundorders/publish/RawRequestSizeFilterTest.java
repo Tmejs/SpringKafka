@@ -34,6 +34,21 @@ class RawRequestSizeFilterTest {
     }
 
     @Test
+    void enforcesLimitWhenApplicationHasContextPath() throws Exception {
+        var request = new MockHttpServletRequest("POST",
+                "/fund-orders/api/v1/fund-order-events/raw");
+        request.setContextPath("/fund-orders");
+        request.setContent(new byte[65_537]);
+        var response = new MockHttpServletResponse();
+        var chain = mock(FilterChain.class);
+
+        filter.doFilter(request, response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(413);
+        verify(chain, never()).doFilter(any(), any());
+    }
+
+    @Test
     void passesOriginalBytesToDispatcherWithinLimit() throws Exception {
         var request = new MockHttpServletRequest("POST", "/api/v1/fund-order-events/raw");
         var body = "évent".getBytes(StandardCharsets.UTF_8);

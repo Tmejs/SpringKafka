@@ -26,8 +26,10 @@ public class RawRequestSizeFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+        var pathWithinApplication = request.getRequestURI()
+                .substring(request.getContextPath().length());
         return !"POST".equals(request.getMethod())
-                || !"/api/v1/fund-order-events/raw".equals(request.getRequestURI());
+                || !"/api/v1/fund-order-events/raw".equals(pathWithinApplication);
     }
 
     @Override
