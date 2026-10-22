@@ -4,11 +4,11 @@ Approved design: retain Spring Boot's KafkaAdmin, extract NewTopic beans into Ka
 
 ## Tasks
 
-- [ ] Add configuration tests for local defaults, overridden topic names/partition/replication settings, invalid topic settings, and Boot-provided admin configuration. Observe a failure for the currently hardcoded replication factor.
-- [ ] Extract topic beans and add validated `app.kafka` topic properties. Preserve equal source/DLQ partition counts and existing topic bean names. Keep listener and retry behavior unchanged.
-- [ ] Add replication factor (default 1) and `spring.kafka.admin.auto-create` (default true) environment mappings. Pass them through Compose and .env.example. Disable application topic creation in the Kubernetes example. Pin integration tests to creation enabled and one replica.
-- [ ] Update README ownership and operational limitations: pre-provision production topics, matching partitions, partition increases and replica reassignment limitations, and distinction from broker automatic topic creation.
-- [ ] Run clean verify, Compose/Kubernetes configuration checks, diff checks, independent review, and refresh committed coverage/evidence. Push checkpoint, merge --no-ff, verify merged main and synchronize remote SHAs under the user's workflow.
+- [x] Add configuration tests for local defaults, overridden topic names/partition/replication settings, invalid topic settings, and Boot-provided admin configuration. Observe a failure for the currently hardcoded replication factor.
+- [x] Extract topic beans and add validated `app.kafka` topic properties. Preserve equal source/DLQ partition counts and existing topic bean names. Keep listener and retry behavior unchanged.
+- [x] Add replication factor (default 1) and `spring.kafka.admin.auto-create` (default true) environment mappings. Pass them through Compose and .env.example. Disable application topic creation in the Kubernetes example. Pin integration tests to creation enabled and one replica.
+- [x] Update README ownership and operational limitations: pre-provision production topics, matching partitions, partition increases and replica reassignment limitations, and distinction from broker automatic topic creation.
+- [x] Run clean verify, Compose/Kubernetes configuration checks, diff checks, independent review, and refresh committed coverage/evidence. Push checkpoint, merge --no-ff, verify merged main and synchronize remote SHAs under the user's workflow.
 
 ## Review focus
 
@@ -21,3 +21,5 @@ Approved design: retain Spring Boot's KafkaAdmin, extract NewTopic beans into Ka
 ## Progress
 
 Baseline main `268a5a0` synchronized with origin; clean worktree; 33 unit tests pass.
+
+Implementation `88ec6d0`: topic configuration tests first failed on ignored replication and accepted invalid values; after implementation 41 unit tests and 10 integration tests pass. Compose defaults/overrides and Kubernetes YAML/probes checked. Independent review PASS; no Critical/Important or code findings. Verification evidence and coverage refreshed before release.
