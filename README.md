@@ -73,11 +73,28 @@ The listener receives up to `APP_KAFKA_MAX_POLL_RECORDS` records per poll and st
 
 Delivery across Kafka and PostgreSQL is **at least once**. The JPA repository reads the persisted events; one native PostgreSQL `INSERT ... ON CONFLICT DO NOTHING` query makes event storage idempotent under concurrent delivery. A reused `eventId` with different content goes to the DLQ. There is no cross-system exactly-once transaction. The event schema is intentionally small and fictional: the ISIN rule checks basic format, not instrument existence or banking compliance.
 
+## Code layout
+
+Application classes live under `com.example.fundorders`:
+
+| Package | Responsibility |
+| --- | --- |
+| `controller` | REST publication and consumed-event queries. |
+| `service` | Event conversion, Kafka publication, and transactional processing. |
+| `repository` | JPA persistence and the idempotent native insert. |
+| `model` | Event types, API response models, and the persistence entity. |
+| `config` | Kafka, security, and external credential configuration. |
+| `kafka` | Kafka batch listener. |
+| `exception` | Application exceptions and HTTP exception handling. |
+| `filter` | HTTP request size enforcement. |
+
+Tests mirror these packages; the HTTP end-to-end test sits at the application root.
+
 ## Configuration and deployment
 
 All broker, topic, group, concurrency, retry, send timeout, and maximum poll settings are in [application.yml](src/main/resources/application.yml), with environment overrides shown in [.env.example](.env.example). Basic credentials must be supplied through `APP_BASIC_AUTH_USERNAME` and `APP_BASIC_AUTH_PASSWORD`; the app rejects blank values at startup. Use HTTPS at an ingress outside local development.
 
-[SecurityConfiguration.java](src/main/java/com/example/fundorders/security/SecurityConfiguration.java) is the documented authentication extension point. To adopt JWT, replace its HTTP Basic and in-memory user beans with Spring Security OAuth2 resource-server configuration, validate issuer/audience and authorities, and keep the controller contracts unchanged. JWT is not implemented in this submission.
+[SecurityConfiguration.java](src/main/java/com/example/fundorders/config/SecurityConfiguration.java) is the documented authentication extension point. To adopt JWT, replace its HTTP Basic and in-memory user beans with Spring Security OAuth2 resource-server configuration, validate issuer/audience and authorities, and keep the controller contracts unchanged. JWT is not implemented in this submission.
 
 The [Kubernetes example](deploy/kubernetes/deployment.yaml) includes startup, readiness, and liveness probes. Liveness checks the process; readiness also checks PostgreSQL. Supply the referenced `fund-orders-config` ConfigMap and `fund-orders-secrets` Secret, use a built image, and provision Kafka topics with matching source/DLQ partition counts. On a managed broker that restricts topic creation, pre-provision them and set `spring.kafka.admin.auto-create=false` in deployment configuration. Configure TLS and broker credentials for nonlocal Kafka.
 
