@@ -10,6 +10,7 @@ app:
     retry-delay: ${APP_KAFKA_RETRY_DELAY:1s}
     concurrency: ${APP_KAFKA_CONCURRENCY:1}
     partitions: ${APP_KAFKA_PARTITIONS:3}
+    replication-factor: ${APP_KAFKA_REPLICATION_FACTOR:1}
 spring:
   jpa:
     open-in-view: false
@@ -17,6 +18,8 @@ spring:
       ddl-auto: validate
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    admin:
+      auto-create: ${APP_KAFKA_ADMIN_AUTO_CREATE:true}
     consumer:
       group-id: ${APP_KAFKA_GROUP_ID:fund-order-events-processor}
       auto-offset-reset: earliest

@@ -4,7 +4,6 @@ import java.time.Duration;
 
 import com.example.fundorders.exception.InvalidEventException;
 
-import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +11,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
-import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.ContainerProperties;
@@ -67,15 +65,4 @@ public class KafkaBatchConfiguration {
         return recoverer;
     }
 
-    @Bean
-    public NewTopic sourceTopic(@Value("${app.kafka.topic}") String topic,
-            @Value("${app.kafka.partitions:3}") int partitions) {
-        return TopicBuilder.name(topic).partitions(partitions).replicas(1).build();
-    }
-
-    @Bean
-    public NewTopic deadLetterTopic(@Value("${app.kafka.dlq-topic}") String topic,
-            @Value("${app.kafka.partitions:3}") int partitions) {
-        return TopicBuilder.name(topic).partitions(partitions).replicas(1).build();
-    }
 }

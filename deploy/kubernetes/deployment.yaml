@@ -54,6 +54,9 @@ spec:
               value: fund-order-events
             - name: APP_KAFKA_DLQ_TOPIC
               value: fund-order-events.DLQ
+            # Topics must be provisioned before deploying the application.
+            - name: APP_KAFKA_ADMIN_AUTO_CREATE
+              value: "false"
             - name: APP_KAFKA_PARTITIONS
               value: "3"
           startupProbe:

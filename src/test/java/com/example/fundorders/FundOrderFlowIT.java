@@ -52,6 +52,8 @@ class FundOrderFlowIT {
         properties.add("app.security.username", () -> "analyst");
         properties.add("app.security.password", () -> "integration-secret");
         properties.add("app.kafka.partitions", () -> 1);
+        properties.add("app.kafka.replication-factor", () -> 1);
+        properties.add("spring.kafka.admin.auto-create", () -> true);
         properties.add("spring.kafka.consumer.properties.max.poll.records", () -> 3);
     }
 

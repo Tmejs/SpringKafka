@@ -96,7 +96,16 @@ All broker, topic, group, concurrency, retry, send timeout, and maximum poll set
 
 [SecurityConfiguration.java](src/main/java/com/example/fundorders/config/SecurityConfiguration.java) is the documented authentication extension point. To adopt JWT, replace its HTTP Basic and in-memory user beans with Spring Security OAuth2 resource-server configuration, validate issuer/audience and authorities, and keep the controller contracts unchanged. JWT is not implemented in this submission.
 
-The [Kubernetes example](deploy/kubernetes/deployment.yaml) includes startup, readiness, and liveness probes. Liveness checks the process; readiness also checks PostgreSQL. Supply the referenced `fund-orders-config` ConfigMap and `fund-orders-secrets` Secret, use a built image, and provision Kafka topics with matching source/DLQ partition counts. On a managed broker that restricts topic creation, pre-provision them and set `spring.kafka.admin.auto-create=false` in deployment configuration. Configure TLS and broker credentials for nonlocal Kafka.
+The [Kubernetes example](deploy/kubernetes/deployment.yaml) includes startup, readiness, and liveness probes. Liveness checks the process; readiness also checks PostgreSQL. Supply the referenced `fund-orders-config` ConfigMap and `fund-orders-secrets` Secret, use a built image, and provision Kafka topics with matching source/DLQ partition counts. The example sets `APP_KAFKA_ADMIN_AUTO_CREATE=false` so the deployment does not create or resize topics. Configure broker-side automatic topic creation separately; this application setting does not disable it. Configure TLS and broker credentials for nonlocal Kafka.
+
+### Kafka topic ownership
+
+Spring Boot supplies the `KafkaAdmin` bean using the shared `spring.kafka` connection settings. [KafkaTopicConfiguration](src/main/java/com/example/fundorders/config/KafkaTopicConfiguration.java) declares the source and DLQ `NewTopic` beans; [KafkaTopicProperties](src/main/java/com/example/fundorders/config/KafkaTopicProperties.java) binds and validates their names, partition count, and replication factor.
+
+- Local Compose defaults: `APP_KAFKA_ADMIN_AUTO_CREATE=true`, `APP_KAFKA_PARTITIONS=3`, and `APP_KAFKA_REPLICATION_FACTOR=1` for its single broker. Replication cannot exceed the available broker count.
+- Production: provision topics through your infrastructure tooling, then set `APP_KAFKA_ADMIN_AUTO_CREATE=false` (mapped to `spring.kafka.admin.auto-create`). Choose replication and retention policies for the target cluster. The Kubernetes example follows this approach.
+- Both declarations share a partition count because DLQ publication preserves the source partition. Pre-provisioned DLQ topics must have at least as many partitions as the source; application declarations are not a startup validation of externally managed topics.
+- When application topic creation is enabled, KafkaAdmin can create missing topics and increase existing partition counts. It cannot decrease partitions or change an existing topic's replication factor; replica reassignment requires a separate administrative operation. Partition increases can change key-to-partition mapping and affect ordering.
 
 HTTP is documented in [OpenAPI](docs/api/openapi.yaml); Kafka topics, messages, and DLQ headers are documented in [AsyncAPI](docs/api/asyncapi.yaml). These are separate contracts because REST request validation and asynchronous consumer validation have different outcomes.
 
