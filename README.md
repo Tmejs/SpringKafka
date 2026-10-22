@@ -91,7 +91,7 @@ With Java 21 and Docker running:
 ./mvnw verify
 ```
 
-The test suite includes unit tests for conversion, producer behavior, batch failure identification, security, pagination, and database idempotency. Testcontainers integration tests use real Kafka and PostgreSQL to exercise HTTP publish → Kafka batch consume → authenticated read or DLQ. Maven Failsafe runs `*IT` classes during `verify`. JaCoCo produces `target/site/jacoco/index.html` and `target/site/jacoco/jacoco.xml`; a generated snapshot is included at [codex/reports/coverage/index.html](codex/reports/coverage/index.html). No hosted CI is required for the local verification gate.
+The test suite includes unit tests for conversion, producer behavior, batch failure identification, security, pagination, and database idempotency. Testcontainers integration tests use real Kafka and PostgreSQL to exercise HTTP publish → Kafka batch consume → authenticated read or DLQ. A controlled batch integration test preloads three records before listener startup and asserts the actual multi-record delivery, database results, DLQ metadata, and broker-committed offsets. A second scenario injects a failed DLQ send, verifies that the invalid record and following record remain pending, then allows a real DLQ publication and verifies recovery. This fault injection tests the publication boundary; it does not simulate a broker outage. Maven Failsafe runs `*IT` classes during `verify`. JaCoCo produces `target/site/jacoco/index.html` and `target/site/jacoco/jacoco.xml`; a generated snapshot is included at [codex/reports/coverage/index.html](codex/reports/coverage/index.html). No hosted CI is required for the local verification gate.
 
 ## Interview discussion points
 
