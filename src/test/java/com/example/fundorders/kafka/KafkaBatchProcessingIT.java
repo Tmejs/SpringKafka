@@ -93,6 +93,8 @@ class KafkaBatchProcessingIT {
         properties.add("app.kafka.topic", () -> SOURCE);
         properties.add("app.kafka.dlq-topic", () -> DLQ);
         properties.add("app.kafka.partitions", () -> 1);
+        properties.add("app.kafka.replication-factor", () -> 1);
+        properties.add("spring.kafka.admin.auto-create", () -> true);
         properties.add("app.kafka.concurrency", () -> 1);
         properties.add("spring.kafka.consumer.group-id", () -> GROUP);
         properties.add("spring.kafka.consumer.properties.max.poll.records", () -> 3);
