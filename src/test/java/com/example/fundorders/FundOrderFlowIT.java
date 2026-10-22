@@ -121,6 +121,14 @@ class FundOrderFlowIT {
     }
 
     @Test
+    void oversizedRawBodyIsRejectedBeforeKafka() throws Exception {
+        var response = postRaw("x".repeat(64 * 1024 + 1));
+
+        assertThat(response.statusCode()).isEqualTo(413);
+        assertThat(response.body()).contains("PAYLOAD_TOO_LARGE");
+    }
+
+    @Test
     void identicalReplayIsIdempotentAndConflictingReplayGoesToDlq() throws Exception {
         var eventId = UUID.randomUUID();
         var orderId = UUID.randomUUID();

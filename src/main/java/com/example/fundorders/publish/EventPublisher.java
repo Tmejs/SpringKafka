@@ -38,9 +38,15 @@ public class EventPublisher {
     }
 
     private PublishReceipt send(String key, String value) {
+        var startedAt = System.nanoTime();
         try {
             var record = new ProducerRecord<>(topic, key, value);
-            var metadata = template.send(record).get(sendTimeout.toMillis(), TimeUnit.MILLISECONDS)
+            var result = template.send(record);
+            var remaining = sendTimeout.toNanos() - (System.nanoTime() - startedAt);
+            if (remaining <= 0) {
+                throw new TimeoutException("Kafka publication exceeded the configured timeout");
+            }
+            var metadata = result.get(remaining, TimeUnit.NANOSECONDS)
                     .getRecordMetadata();
             return new PublishReceipt(metadata.topic(), metadata.partition(), metadata.offset(), key);
         } catch (InterruptedException ex) {

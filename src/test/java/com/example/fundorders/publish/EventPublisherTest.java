@@ -9,17 +9,24 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import com.example.fundorders.event.FundOrderEventCodec;
 import com.example.fundorders.event.FundOrderStatusEvent;
 import com.example.fundorders.event.OrderStatus;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.support.SendResult;
 
 class EventPublisherTest {
@@ -63,6 +70,55 @@ class EventPublisherTest {
 
         assertThatThrownBy(() -> publisher.publishRaw("{}"))
                 .isInstanceOf(PublishFailedException.class);
+    }
+
+    @Test
+    void acknowledgmentWaitUsesTimeRemainingAfterSynchronousSendWork() {
+        var future = new CapturingFuture();
+        when(template.send(any(ProducerRecord.class))).thenAnswer(invocation -> {
+            Thread.sleep(80);
+            return future;
+        });
+        var boundedPublisher = new EventPublisher(template, codec, "fund-orders",
+                Duration.ofMillis(500));
+
+        assertThatThrownBy(() -> boundedPublisher.publishRaw("{}"))
+                .isInstanceOf(PublishFailedException.class);
+        assertThat(future.requestedNanos).isLessThan(Duration.ofMillis(480).toNanos());
+    }
+
+    @Test
+    void unavailableBrokerFailsWithinProducerBlockingBudget() {
+        var factory = new DefaultKafkaProducerFactory<String, String>(Map.of(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:1",
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                ProducerConfig.MAX_BLOCK_MS_CONFIG, 300,
+                ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 500,
+                ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 800));
+        try {
+            var boundedPublisher = new EventPublisher(new KafkaTemplate<>(factory), codec,
+                    "fund-orders", Duration.ofSeconds(1));
+            var startedAt = System.nanoTime();
+
+            assertThatThrownBy(() -> boundedPublisher.publishRaw("{}"))
+                    .isInstanceOf(PublishFailedException.class);
+            assertThat(Duration.ofNanos(System.nanoTime() - startedAt))
+                    .isLessThan(Duration.ofSeconds(3));
+        } finally {
+            factory.destroy();
+        }
+    }
+
+    private static class CapturingFuture extends CompletableFuture<SendResult<String, String>> {
+        private long requestedNanos;
+
+        @Override
+        public SendResult<String, String> get(long timeout, TimeUnit unit)
+                throws InterruptedException, ExecutionException, TimeoutException {
+            requestedNanos = unit.toNanos(timeout);
+            throw new TimeoutException("No broker acknowledgment");
+        }
     }
 
     private void givenAcknowledgment() {

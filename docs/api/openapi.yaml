@@ -61,14 +61,13 @@ paths:
   /api/v1/fund-order-events/raw:
     post:
       summary: Publish raw text to test consumer validation
-      description: Sends the body unchanged, including malformed JSON. Maximum 64 KiB UTF-8.
+      description: Sends the body unchanged, including malformed JSON. Maximum 64 KiB of request body bytes.
       requestBody:
         required: true
         content:
           text/plain:
             schema:
               type: string
-              maxLength: 65536
       responses:
         '202':
           description: Kafka acknowledged the raw text
@@ -80,6 +79,12 @@ paths:
           $ref: '#/components/responses/InvalidRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: Raw request body exceeds 64 KiB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
         '503':
           $ref: '#/components/responses/KafkaUnavailable'
   /api/v1/fund-order-events/{eventId}:
@@ -101,6 +106,8 @@ paths:
                 $ref: '#/components/schemas/ProcessedFundOrderEvent'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
         '404':
           description: Event does not exist
           content:
