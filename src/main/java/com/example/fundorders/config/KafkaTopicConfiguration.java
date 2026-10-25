@@ -12,12 +12,16 @@ public class KafkaTopicConfiguration {
     @Bean
     public NewTopic sourceTopic(KafkaTopicProperties properties) {
         return TopicBuilder.name(properties.topic())
-                .partitions(properties.partitions()).replicas(properties.replicationFactor()).build();
+                .partitions(properties.partitions())
+                .replicas(properties.replicationFactor())
+                .build();
     }
 
     @Bean
     public NewTopic deadLetterTopic(KafkaTopicProperties properties) {
         return TopicBuilder.name(properties.dlqTopic())
-                .partitions(properties.partitions()).replicas(properties.replicationFactor()).build();
+                .partitions(properties.partitions())
+                .replicas(properties.replicationFactor())
+                .build();
     }
 }
