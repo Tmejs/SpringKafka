@@ -73,6 +73,12 @@ The listener receives up to `APP_KAFKA_MAX_POLL_RECORDS` records per poll and st
 
 Delivery across Kafka and PostgreSQL is **at least once**. The JPA repository reads the persisted events; one native PostgreSQL `INSERT ... ON CONFLICT DO NOTHING` query makes event storage idempotent under concurrent delivery. A reused `eventId` with different content goes to the DLQ. There is no cross-system exactly-once transaction. The event schema is intentionally small and fictional: the ISIN rule checks basic format, not instrument existence or banking compliance.
 
+### Timestamp validation and poison messages
+
+`occurredAt` must be between `0001-01-01T00:00:00Z` and `9999-12-31T23:59:59.999999Z` inclusive. These limits keep event dates within PostgreSQL's storage range and avoid rounding the upper endpoint into year 10000. The shared codec checks this before publication and before consumer persistence.
+
+Typed requests with unsupported timestamps return HTTP 400 before publishing. Raw requests remain accepted for asynchronous validation; records with unsupported timestamps go to the DLQ with their original payload and source metadata, and later records can continue. The same applies to records published directly to Kafka. Transient database failures still retry; failed DLQ publication still leaves the source record pending.
+
 ## Code layout
 
 Application classes live under `com.example.fundorders`:

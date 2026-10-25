@@ -40,6 +40,8 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -200,6 +202,48 @@ class KafkaBatchProcessingIT {
         assertDeadLetter(batch);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"+300000-01-01T00:00:00Z", "-300000-01-01T00:00:00Z"})
+    void poisonTimestampGoesToDlqAndFollowingRecordPersists(String timestamp) throws Exception {
+        var firstId = UUID.randomUUID();
+        var poisonId = UUID.randomUUID();
+        var lastId = UUID.randomUUID();
+        var orderId = UUID.randomUUID();
+        var poison = event(poisonId, orderId, OrderStatus.ACCEPTED)
+                .replace("2026-10-21T12:00:00Z", timestamp);
+        var batch = new PublishedBatch(firstId, lastId, poison, List.of(
+                publish(orderId, event(firstId, orderId, OrderStatus.ACCEPTED)),
+                publish(orderId, poison),
+                publish(orderId, event(lastId, orderId, OrderStatus.EXECUTED))));
+
+        listener.start();
+
+        assertInitialBatchWasDelivered(batch);
+        assertProcessingCompleted(batch);
+        assertThat(repository.findByEventId(poisonId)).isEmpty();
+        assertDeadLetter(batch);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0001-01-01T00:00:00Z", "9999-12-31T23:59:59.999999Z"})
+    void supportedTimestampBoundariesPersistInPostgres(String timestamp) throws Exception {
+        var eventId = UUID.randomUUID();
+        var orderId = UUID.randomUUID();
+        var value = event(eventId, orderId, OrderStatus.ACCEPTED)
+                .replace("2026-10-21T12:00:00Z", timestamp);
+        var offset = publish(orderId, value);
+
+        listener.start();
+
+        await().atMost(WAIT).untilAsserted(() -> {
+            assertThat(repository.findByEventId(eventId)).get()
+                    .extracting(stored -> stored.occurredAt()).isEqualTo(Instant.parse(timestamp));
+            assertThat(committedOffset()).isEqualTo(offset + 1);
+        });
+        assertThat(repository.count()).isEqualTo(initialRows + 1);
+        assertThat(endOffset(DLQ_PARTITION)).isEqualTo(initialDlqOffset);
+    }
+
     private PublishedBatch publishBatch() throws Exception {
         var firstId = UUID.randomUUID();
         var lastId = UUID.randomUUID();
@@ -267,7 +311,7 @@ class KafkaBatchProcessingIT {
                 assertThat(records).hasSize(1);
             });
             var deadLetter = records.getFirst();
-            assertThat(deadLetter.value()).isEqualTo(batch.malformed());
+            assertThat(deadLetter.value()).isEqualTo(batch.invalidPayload());
             var headers = deadLetter.headers();
             assertThat(new String(headers.lastHeader(KafkaHeaders.DLT_ORIGINAL_TOPIC).value(),
                     StandardCharsets.UTF_8)).isEqualTo(SOURCE);
@@ -279,7 +323,7 @@ class KafkaBatchProcessingIT {
         }
     }
 
-    private record PublishedBatch(UUID firstId, UUID lastId, String malformed, List<Long> offsets) {
+    private record PublishedBatch(UUID firstId, UUID lastId, String invalidPayload, List<Long> offsets) {
     }
 
     private static final class DlqFailureWindow {
