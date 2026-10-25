@@ -28,7 +28,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiError> statusFailure(ResponseStatusException ex) {
-        var code = ex.getStatusCode().value() == 404 ? "NOT_FOUND" : "INVALID_REQUEST";
+        var code = switch (ex.getStatusCode().value()) {
+            case 404 -> "NOT_FOUND";
+            case 413 -> "PAYLOAD_TOO_LARGE";
+            default -> "INVALID_REQUEST";
+        };
         return ResponseEntity.status(ex.getStatusCode())
                 .body(new ApiError(code, ex.getReason()));
     }

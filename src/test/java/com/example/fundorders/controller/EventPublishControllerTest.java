@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
+
 import com.example.fundorders.exception.ApiExceptionHandler;
 import com.example.fundorders.exception.PublishFailedException;
 import com.example.fundorders.model.FundOrderStatusEvent;
@@ -19,6 +21,8 @@ import com.example.fundorders.service.FundOrderEventCodec;
 import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -88,6 +92,32 @@ class EventPublishControllerTest {
                 .content("{not-json"))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.offset").value(43));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"x,65537", "é,32769"})
+    void oversizedRawMessageReturns413BeforePublication(String character, int repetitions) throws Exception {
+        mvc.perform(post("/api/v1/fund-order-events/raw")
+                .contentType(new MediaType("text", "plain", StandardCharsets.UTF_8))
+                .content(character.repeat(repetitions)))
+                .andExpect(status().isPayloadTooLarge())
+                .andExpect(jsonPath("$.code").value("PAYLOAD_TOO_LARGE"));
+
+        verify(publisher, never()).publishRaw(any());
+    }
+
+    @Test
+    void exactUtf8MessageSizeLimitIsAccepted() throws Exception {
+        var raw = "é".repeat(32768);
+        when(publisher.publishRaw(raw))
+                .thenReturn(new PublishReceipt("fund-orders", 0, 43, "raw-key"));
+
+        mvc.perform(post("/api/v1/fund-order-events/raw")
+                .contentType(new MediaType("text", "plain", StandardCharsets.UTF_8))
+                .content(raw))
+                .andExpect(status().isAccepted());
+
+        verify(publisher).publishRaw(raw);
     }
 
     @Test

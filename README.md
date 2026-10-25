@@ -46,7 +46,7 @@ docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
   --from-beginning --max-messages 1
 ```
 
-A typed request with an unknown status gets `400` and never enters Kafka. Sending the same invalid JSON as raw text gets `202` first, then the consumer routes it to the DLQ. Raw **valid** JSON is processed and stored. Both POST endpoints require Basic authentication. The raw endpoint rejects bodies over 64 KiB with `413` before publishing to Kafka.
+A typed request with an unknown status gets `400` and never enters Kafka. Sending the same invalid JSON as raw text gets `202` first, then the consumer routes it to the DLQ. Raw **valid** JSON is processed and stored. Both POST endpoints require Basic authentication. The raw endpoint rejects message text over 64 KiB when encoded as UTF-8 with `413` before publishing to Kafka. The controller checks this after Spring has read the request body; this is a publication limit, not protection against large request allocations.
 
 ## What the consumer does
 
@@ -94,11 +94,12 @@ Application classes live under `com.example.fundorders`:
 | `config` | Kafka, security, and external credential configuration. |
 | `kafka` | Kafka batch listener. |
 | `exception` | Application exceptions and HTTP exception handling. |
-| `filter` | HTTP request size enforcement. |
 
 Tests mirror these packages; the HTTP end-to-end test sits at the application root.
 
 ## Configuration and deployment
+
+Configure request-body size limits at the ingress or reverse proxy for both publishing endpoints in production. This project has no custom body-size filter, and the Kubernetes example does not include ingress configuration.
 
 All broker, topic, group, concurrency, retry, send timeout, and maximum poll settings are in [application.yml](src/main/resources/application.yml), with environment overrides shown in [.env.example](.env.example). Basic credentials must be supplied through `APP_BASIC_AUTH_USERNAME` and `APP_BASIC_AUTH_PASSWORD`; the app rejects blank values at startup. Use HTTPS at an ingress outside local development.
 
