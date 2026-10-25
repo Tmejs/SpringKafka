@@ -14,7 +14,12 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.OffsetSpec;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -141,20 +146,33 @@ class FundOrderFlowIT {
     }
 
     @Test
-    void identicalReplayIsIdempotentAndConflictingReplayGoesToDlq() throws Exception {
+    void repeatedEventIdsPreserveOriginalWithoutDlqAndLaterEventsContinue() throws Exception {
         var eventId = UUID.randomUUID();
+        var tailId = UUID.randomUUID();
         var orderId = UUID.randomUUID();
         var original = eventJson(eventId, orderId, "ACCEPTED");
-        var conflict = eventJson(eventId, orderId, "REJECTED");
+        var changedReplay = eventJson(eventId, orderId, "REJECTED");
+        var dlqPartition = new TopicPartition(DLQ_TOPIC, 0);
+        try (var admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG,
+                kafka.getBootstrapServers()))) {
+            var initialDlqOffset = admin.listOffsets(Map.of(dlqPartition, OffsetSpec.latest()))
+                    .all().get(10, TimeUnit.SECONDS).get(dlqPartition).offset();
+            assertThat(postRaw(original).statusCode()).isEqualTo(202);
+            await().atMost(Duration.ofSeconds(20)).untilAsserted(() ->
+                    assertThat(read(eventId).statusCode()).isEqualTo(200));
+            var storedOriginal = read(eventId).body();
 
-        assertThat(postRaw(original).statusCode()).isEqualTo(202);
-        assertThat(postRaw(original).statusCode()).isEqualTo(202);
-        assertThat(postRaw(conflict).statusCode()).isEqualTo(202);
-        await().atMost(Duration.ofSeconds(20)).untilAsserted(() ->
-                assertThat(read(eventId).statusCode()).isEqualTo(200));
+            assertThat(postRaw(original).statusCode()).isEqualTo(202);
+            assertThat(postRaw(changedReplay).statusCode()).isEqualTo(202);
+            assertThat(postRaw(eventJson(tailId, orderId, "EXECUTED")).statusCode()).isEqualTo(202);
+            await().atMost(Duration.ofSeconds(20)).untilAsserted(() ->
+                    assertThat(read(tailId).statusCode()).isEqualTo(200));
 
-        assertThat(deadLettersFor(List.of(conflict))).hasSize(1);
-        assertThat(read(eventId).body()).contains("ACCEPTED");
+            assertThat(read(eventId).body()).isEqualTo(storedOriginal);
+            assertThat(admin.listOffsets(Map.of(dlqPartition, OffsetSpec.latest()))
+                    .all().get(10, TimeUnit.SECONDS).get(dlqPartition).offset())
+                    .isEqualTo(initialDlqOffset);
+        }
     }
 
     private HttpResponse<String> postRaw(String payload) throws Exception {

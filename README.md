@@ -64,14 +64,16 @@ flowchart LR
 | Case | Result |
 | --- | --- |
 | `ACCEPTED`, `REJECTED`, or `EXECUTED` event | Stored and returned by GET. |
-| Malformed JSON, missing required field, unsupported schema version, bad enum/format, or conflicting reuse of `eventId` | Original Kafka record goes to DLQ without futile content retries. |
-| Identical replay of an `eventId` | No extra database row. |
+| Malformed JSON, missing required field, unsupported schema version, bad enum/format | Original Kafka record goes to DLQ without futile content retries. |
+| Valid replay of an existing `eventId`, including changed content | Existing row unchanged; no DLQ publication. |
 | PostgreSQL or unexpected application failure | Retried with a delay; failed offset remains pending. |
 | DLQ publication failure | Source record remains pending for recovery retry. |
 
 The listener receives up to `APP_KAFKA_MAX_POLL_RECORDS` records per poll and stops at the exact failed record. Spring Kafka commits successful earlier offsets, recovers one permanent failure to the DLQ, and redelivers later records. Actual batch size depends on available records and broker fetches; it is not guaranteed to equal the maximum. Typed events use `orderId` as their Kafka key, preserving per-order partition ordering. Raw text uses a generated key because it may not contain an `orderId`.
 
-Delivery across Kafka and PostgreSQL is **at least once**. The JPA repository reads the persisted events; one native PostgreSQL `INSERT ... ON CONFLICT DO NOTHING` query makes event storage idempotent under concurrent delivery. A reused `eventId` with different content goes to the DLQ. There is no cross-system exactly-once transaction. The event schema is intentionally small and fictional: the ISIN rule checks basic format, not instrument existence or banking compliance.
+Delivery across Kafka and PostgreSQL is **at least once**. The JPA repository reads the persisted events; one native PostgreSQL `INSERT ... ON CONFLICT DO NOTHING` query makes event storage idempotent under concurrent delivery. Every valid replay of an existing `eventId` is ignored, even if its content differs: the first stored version wins. No payload hashing or comparison is performed. There is no cross-system exactly-once transaction. The event schema is intentionally small and fictional: the ISIN rule checks basic format, not instrument existence or banking compliance.
+
+The schema change removes the hash column directly from V1. Existing development databases initialized with the older V1 must be recreated before running this version; no upgrade migration is included.
 
 ### Timestamp validation and poison messages
 

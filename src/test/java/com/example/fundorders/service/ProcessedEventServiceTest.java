@@ -1,7 +1,6 @@
 package com.example.fundorders.service;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -28,7 +27,7 @@ class ProcessedEventServiceTest {
                 "AGENCY_A", "LU1234567890", OrderStatus.REJECTED,
                 Instant.parse("2026-10-21T12:00:00Z"));
         var outage = new DataAccessResourceFailureException("database unavailable");
-        when(repository.insertIfAbsent(org.mockito.ArgumentMatchers.eq(event), anyString()))
+        when(repository.insertIfAbsent(event))
                 .thenThrow(outage);
 
         assertThatThrownBy(() -> service.process(event)).isSameAs(outage);

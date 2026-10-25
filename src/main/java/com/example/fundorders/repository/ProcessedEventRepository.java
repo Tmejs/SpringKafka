@@ -22,9 +22,9 @@ public interface ProcessedEventRepository extends JpaRepository<ProcessedEventEn
     @Query(value = """
             INSERT INTO processed_fund_order_events
                 (event_id, schema_version, order_id, partner_code, fund_isin,
-                 status, occurred_at, payload_hash)
+                 status, occurred_at)
             VALUES (:eventId, :schemaVersion, :orderId, :partnerCode, :fundIsin,
-                    :status, :occurredAt, :payloadHash)
+                    :status, :occurredAt)
             ON CONFLICT (event_id) DO NOTHING
             """, nativeQuery = true)
     int insertIfAbsent(@Param("eventId") UUID eventId,
@@ -33,17 +33,12 @@ public interface ProcessedEventRepository extends JpaRepository<ProcessedEventEn
             @Param("partnerCode") String partnerCode,
             @Param("fundIsin") String fundIsin,
             @Param("status") String status,
-            @Param("occurredAt") Instant occurredAt,
-            @Param("payloadHash") String payloadHash);
+            @Param("occurredAt") Instant occurredAt);
 
-    default boolean insertIfAbsent(FundOrderStatusEvent event, String payloadHash) {
+    default boolean insertIfAbsent(FundOrderStatusEvent event) {
         return insertIfAbsent(event.eventId(), event.schemaVersion(), event.orderId(),
                 event.partnerCode(), event.fundIsin(), event.status().name(),
-                event.occurredAt(), payloadHash) == 1;
-    }
-
-    default Optional<String> findPayloadHash(UUID eventId) {
-        return findById(eventId).map(ProcessedEventEntity::payloadHash);
+                event.occurredAt()) == 1;
     }
 
     default Optional<ProcessedFundOrderEvent> findByEventId(UUID eventId) {

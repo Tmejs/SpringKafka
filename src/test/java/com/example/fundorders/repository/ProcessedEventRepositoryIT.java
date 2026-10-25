@@ -1,12 +1,10 @@
 package com.example.fundorders.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.util.UUID;
 
-import com.example.fundorders.exception.InvalidEventException;
 import com.example.fundorders.model.FundOrderStatusEvent;
 import com.example.fundorders.model.OrderStatus;
 import com.example.fundorders.model.ProcessedFundOrderEvent;
@@ -64,15 +62,17 @@ class ProcessedEventRepositoryIT {
     }
 
     @Test
-    void rejectsReusedIdWithDifferentContent() {
+    void ignoresReusedIdWithDifferentContentAndPreservesOriginalEvent() {
         var event = event(UUID.randomUUID(), Instant.parse("2026-10-21T12:00:00Z"));
         service.process(event);
+        var original = repository.findByEventId(event.eventId()).orElseThrow();
 
-        assertThatThrownBy(() -> service.process(new FundOrderStatusEvent(1,
+        service.process(new FundOrderStatusEvent(1,
                 event.eventId(), event.orderId(), event.partnerCode(), event.fundIsin(),
-                OrderStatus.REJECTED, event.occurredAt())))
-                .isInstanceOf(InvalidEventException.class);
+                OrderStatus.REJECTED, event.occurredAt()));
+
         assertThat(repository.count()).isEqualTo(1);
+        assertThat(repository.findByEventId(event.eventId())).contains(original);
     }
 
     @Test
