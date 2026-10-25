@@ -61,7 +61,7 @@ paths:
   /api/v1/fund-order-events/raw:
     post:
       summary: Publish raw text to test consumer validation
-      description: Sends the body unchanged, including malformed JSON. Maximum 64 KiB of request body bytes.
+      description: Sends the text unchanged, including malformed JSON. Maximum 64 KiB when encoded as UTF-8, checked after reading the request. Enforce early request-body limits at the ingress or reverse proxy.
       requestBody:
         required: true
         content:
@@ -80,7 +80,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '413':
-          description: Raw request body exceeds 64 KiB
+          description: Raw message text exceeds 64 KiB when encoded as UTF-8
           content:
             application/json:
               schema:
