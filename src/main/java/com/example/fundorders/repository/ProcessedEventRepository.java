@@ -39,12 +39,14 @@ public interface ProcessedEventRepository extends JpaRepository<ProcessedEventEn
     }
 
     default Optional<ProcessedFundOrderEvent> findByEventId(UUID eventId) {
-        return findById(eventId).map(ProcessedEventEntity::toModel);
+        return findById(eventId)
+                .map(ProcessedEventEntity::toModel);
     }
 
     default Page<ProcessedFundOrderEvent> findPage(Pageable pageable) {
         var order = Sort.by(Sort.Order.desc("occurredAt"), Sort.Order.desc("eventId"));
         var orderedPage = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), order);
-        return findAll(orderedPage).map(ProcessedEventEntity::toModel);
+        return findAll(orderedPage)
+                .map(ProcessedEventEntity::toModel);
     }
 }
