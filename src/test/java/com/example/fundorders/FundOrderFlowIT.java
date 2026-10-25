@@ -129,11 +129,14 @@ class FundOrderFlowIT {
     }
 
     @Test
-    void oversizedRawBodyIsRejectedBeforeKafka() throws Exception {
-        var response = postRaw("x".repeat(64 * 1024 + 1));
+    void rawBodyAboveFormerLimitReachesDlqUnchanged() throws Exception {
+        var raw = "x".repeat(64 * 1024 + 1);
+        var response = postRaw(raw);
 
-        assertThat(response.statusCode()).isEqualTo(413);
-        assertThat(response.body()).contains("PAYLOAD_TOO_LARGE");
+        assertThat(response.statusCode()).isEqualTo(202);
+        assertThat(deadLettersFor(List.of(raw)))
+                .extracting(ConsumerRecord::value)
+                .containsExactly(raw);
     }
 
     @Test

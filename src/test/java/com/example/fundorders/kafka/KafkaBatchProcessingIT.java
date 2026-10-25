@@ -203,8 +203,9 @@ class KafkaBatchProcessingIT {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"+300000-01-01T00:00:00Z", "-300000-01-01T00:00:00Z"})
-    void poisonTimestampGoesToDlqAndFollowingRecordPersists(String timestamp) throws Exception {
+    @ValueSource(strings = {"+300000-01-01T00:00:00Z", "-300000-01-01T00:00:00Z",
+            "+1000000000-12-31T23:59:59.999999999Z", "-1000000000-01-01T00:00:00Z"})
+    void postgresTimestampOverflowGoesToDlqAndFollowingRecordPersists(String timestamp) throws Exception {
         var firstId = UUID.randomUUID();
         var poisonId = UUID.randomUUID();
         var lastId = UUID.randomUUID();
@@ -226,7 +227,7 @@ class KafkaBatchProcessingIT {
 
     @ParameterizedTest
     @ValueSource(strings = {"0001-01-01T00:00:00Z", "9999-12-31T23:59:59.999999Z"})
-    void supportedTimestampBoundariesPersistInPostgres(String timestamp) throws Exception {
+    void fourDigitYearTimestampsPersistInPostgres(String timestamp) throws Exception {
         var eventId = UUID.randomUUID();
         var orderId = UUID.randomUUID();
         var value = event(eventId, orderId, OrderStatus.ACCEPTED)

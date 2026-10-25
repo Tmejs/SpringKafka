@@ -61,7 +61,7 @@ paths:
   /api/v1/fund-order-events/raw:
     post:
       summary: Publish raw text to test consumer validation
-      description: Sends the text unchanged, including malformed JSON. Maximum 64 KiB when encoded as UTF-8, checked after reading the request. Enforce early request-body limits at the ingress or reverse proxy.
+      description: Sends the text unchanged, including malformed JSON. Kafka producer and broker message size limits apply. Enforce early request-body limits at the ingress or reverse proxy.
       requestBody:
         required: true
         content:
@@ -79,12 +79,6 @@ paths:
           $ref: '#/components/responses/InvalidRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '413':
-          description: Raw message text exceeds 64 KiB when encoded as UTF-8
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
         '503':
           $ref: '#/components/responses/KafkaUnavailable'
   /api/v1/fund-order-events/{eventId}:
@@ -180,7 +174,7 @@ components:
         occurredAt:
           type: string
           format: date-time
-          description: UTC instant from 0001-01-01T00:00:00Z through 9999-12-31T23:59:59.999999Z inclusive.
+          description: Parsed as a Java Instant without a custom date range. PostgreSQL datetime overflow during consumption sends the event to the DLQ; HTTP 202 confirms publication only. Stored timestamps have microsecond precision.
     ProcessedFundOrderEvent:
       allOf:
         - $ref: '#/components/schemas/FundOrderStatusEvent'
