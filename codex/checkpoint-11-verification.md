@@ -19,6 +19,10 @@ Compose includes the agreed ghcr.io/kafbat/kafka-ui:latest service, published on
 - Java21 ./mvnw -q clean verify: PASS,52 unit tests and16 integration tests, zero failures/errors/skips.
 - Independent review: checkpoint_11_review PASS. Minor missing8081 troubleshooting detail corrected and re-reviewed; no remaining Critical/Important/Minor findings.
 
+## Concurrent user documentation edit
+
+The pre-merge clean-main guard stopped on a new README introduction edit. User explicitly authorized a separate preservation commit and completion of the merge. Commit d0a6ad6 removes the requested introductory REJECTED sentence and trims its trailing whitespace. Independent re-review found no Critical/Important issues. No application/config changes were introduced; main was restored clean after preservation.
+
 ## Release procedure
 
 Push checkpoint and compare local/tracking/remote SHAs. Merge --no-ff into clean synchronized main, validate Compose and rerun full Maven gate on merged main, push main and compare SHAs. Start only the Kafka UI service from the primary checkout alongside the existing stack, verify localhost:8081 and the running cluster, and preserve checkpoint branch. No hosted CI added.
