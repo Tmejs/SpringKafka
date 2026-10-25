@@ -6,8 +6,7 @@ CREATE TABLE processed_fund_order_events (
     fund_isin VARCHAR(12) NOT NULL,
     status VARCHAR(16) NOT NULL,
     occurred_at TIMESTAMPTZ NOT NULL,
-    processed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    payload_hash CHAR(64) NOT NULL
+    processed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX processed_fund_order_events_page_idx

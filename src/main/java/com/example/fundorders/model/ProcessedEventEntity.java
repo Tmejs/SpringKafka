@@ -9,8 +9,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "processed_fund_order_events")
@@ -41,15 +39,7 @@ public class ProcessedEventEntity {
     @Column(name = "processed_at", nullable = false)
     private Instant processedAt;
 
-    @JdbcTypeCode(SqlTypes.CHAR)
-    @Column(name = "payload_hash", nullable = false, length = 64)
-    private String payloadHash;
-
     protected ProcessedEventEntity() {
-    }
-
-    public String payloadHash() {
-        return payloadHash;
     }
 
     public ProcessedFundOrderEvent toModel() {
