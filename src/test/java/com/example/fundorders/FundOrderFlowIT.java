@@ -8,6 +8,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -34,6 +36,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import tools.jackson.databind.json.JsonMapper;
 
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -66,6 +69,70 @@ class FundOrderFlowIT {
     int port;
 
     private final HttpClient http = HttpClient.newHttpClient();
+
+    @Test
+    void swaggerUiAndDocumentsRequireBasicAuthentication() throws Exception {
+        for (var path : List.of("/swagger-ui/index.html", "/swagger-ui/swagger-ui-bundle.js", "/v3/api-docs",
+                "/v3/api-docs/swagger-config")) {
+            assertThat(send("GET", path, null, null, false).statusCode()).isEqualTo(401);
+            assertThat(send("GET", path, null, null, true).statusCode()).isEqualTo(200);
+        }
+        assertThat(send("GET", "/swagger-ui/index.html", null, null, true).body())
+                .contains("Swagger UI");
+    }
+
+    @Test
+    void generatedOpenApiDescribesControllerContractAndExportsBuildArtifact() throws Exception {
+        var response = send("GET", "/v3/api-docs", null, null, true);
+        assertThat(response.statusCode()).isEqualTo(200);
+        var document = JsonMapper.builder().build().readTree(response.body());
+        assertThat(document.path("openapi").asString()).startsWith("3.");
+        assertThat(document.at("/servers/0/url").asString()).isEqualTo("/");
+        assertThat(document.path("paths").size()).isEqualTo(3);
+        var collection = document.at("/paths/~1api~1v1~1fund-order-events");
+        assertThat(collection.at("/post/responses/202").isMissingNode()).isFalse();
+        assertThat(collection.at("/post/responses/200").isMissingNode()).isTrue();
+        assertThat(collection.at("/post/requestBody/content/application~1json").isMissingNode()).isFalse();
+        assertThat(collection.at("/post/responses/202/content/application~1json/schema/$ref").asString())
+                .endsWith("/PublishReceipt");
+        assertThat(collection.at("/post/responses/503/content/application~1json/schema/$ref").asString())
+                .endsWith("/ApiError");
+        assertThat(collection.at("/get/responses/200/content/application~1json/schema/$ref").asString())
+                .endsWith("/EventPage");
+        assertThat(collection.at("/get/parameters").size()).isEqualTo(2);
+        var parameterNames = new ArrayList<String>();
+        for (var parameter : collection.at("/get/parameters")) {
+            var name = parameter.path("name").asString();
+            parameterNames.add(name);
+            assertThat(parameter.at("/schema/default").isIntegralNumber()).isTrue();
+            assertThat(parameter.at("/schema/type").asString()).isEqualTo("integer");
+            assertThat(parameter.at("/schema/format").asString()).isEqualTo("int32");
+            assertThat(parameter.at("/schema/default").asInt()).isEqualTo(name.equals("page") ? 0 : 20);
+            assertThat(parameter.at("/schema/minimum").asInt()).isEqualTo(name.equals("page") ? 0 : 1);
+            if (name.equals("size")) {
+                assertThat(parameter.at("/schema/maximum").asInt()).isEqualTo(100);
+            }
+        }
+        assertThat(parameterNames).containsExactlyInAnyOrder("page", "size");
+        assertThat(document.at("/paths/~1api~1v1~1fund-order-events~1raw/post/requestBody/content/text~1plain")
+                .isMissingNode()).isFalse();
+        assertThat(document.at("/paths/~1api~1v1~1fund-order-events~1{eventId}/get/responses/404")
+                .isMissingNode()).isFalse();
+        assertThat(document.at("/components/securitySchemes/basicAuth/scheme").asString()).isEqualTo("basic");
+        assertThat(document.at("/security/0/basicAuth").isArray()).isTrue();
+        var eventSchema = document.at("/components/schemas/FundOrderStatusEvent");
+        assertThat(eventSchema.path("required").toString())
+                .contains("eventId", "orderId", "partnerCode", "status", "occurredAt", "schemaVersion");
+        assertThat(eventSchema.at("/properties/schemaVersion/enum").toString()).isEqualTo("[1]");
+        assertThat(eventSchema.at("/properties/partnerCode/pattern").asString())
+                .isEqualTo("^[A-Z0-9_]{2,32}$");
+        assertThat(eventSchema.at("/properties/status/enum").toString())
+                .contains("ACCEPTED", "REJECTED", "EXECUTED");
+
+        var output = Path.of(System.getProperty("openapi.outputDirectory", "target/openapi"));
+        Files.createDirectories(output);
+        Files.writeString(output.resolve("openapi.json"), response.body(), StandardCharsets.UTF_8);
+    }
 
     @Test
     void typedPublishBecomesAuthenticatedReadAndHealthIsPublic() throws Exception {

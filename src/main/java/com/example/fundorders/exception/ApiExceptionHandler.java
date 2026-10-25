@@ -1,5 +1,6 @@
 package com.example.fundorders.exception;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -11,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @Schema(requiredProperties = {"code", "message"})
     public record ApiError(String code, String message) {
     }
 

@@ -58,6 +58,21 @@ set +a
 
 To choose IDs yourself, export `EVENT_ID` and `ORDER_ID` as valid UUIDs. The invalid typed scenario always generates a fresh event ID so its 404 check remains meaningful. Unset them afterwards to return to fresh IDs. Records from previous runs remain in the list.
 
+## Call the APIs from Swagger UI
+
+Open [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html). Log in with the Basic credentials from `.env` when the browser asks. Use **Authorize** in Swagger UI to set the same username/password for **Try it out**.
+
+The UI shows the current controller routes and models, including publication HTTP 202, validation/error responses, pagination and Basic authentication. Send a typed event with a fresh UUID, then retrieve that event. The raw endpoint accepts text; malformed input is rejected later by the consumer. The curl script remains useful for repeatable rehearsals.
+
+`./mvnw clean verify` exports the checked runtime document to `target/openapi/openapi.json`. For a running application, download it with credentials:
+
+```bash
+curl -fsS -u "$APP_BASIC_AUTH_USERNAME:$APP_BASIC_AUTH_PASSWORD" \
+  http://localhost:8080/v3/api-docs -o /tmp/fund-orders-openapi.json
+```
+
+The document, UI and UI assets require authentication. There is no checked-in static OpenAPI file. A package-only build or a build with integration tests skipped does not export the artifact; its running app still exposes the document.
+
 ## Inspect Kafka in the browser
 
 Open [http://localhost:8081](http://localhost:8081). If the stack was started before Kafka UI was added, run `docker compose up -d kafka-ui` first.
@@ -147,15 +162,14 @@ docker compose down
 
 This stops the stack and retains PostgreSQL data. Use `down -v` only when you intentionally want to remove its development data.
 
-## Validate the API documents
+## API contract verification
 
-The contracts are `docs/api/openapi.yaml` (OpenAPI 3.0.3) and `docs/api/asyncapi.yaml` (AsyncAPI 2.6.0). Optional Node.js/npm tooling can validate their schemas and references without adding application dependencies:
+The Maven integration tests request `/v3/api-docs` from the real application, verify Basic authentication and Swagger resources, assert the business routes, request/response schemas and important constraints, then export `target/openapi/openapi.json`. Generate it with `./mvnw clean verify`; OpenAPI is not maintained as a separate YAML file.
+
+`docs/api/asyncapi.yaml` remains the Kafka contract. It is independent of HTTP controller generation. Optional Node.js/npm tooling can validate it with the official AsyncAPI CLI:
 
 ```bash
-validator_dir=$(mktemp -d)
-npm install --prefix "$validator_dir" --ignore-scripts --no-audit --no-fund \
-  @apidevtools/swagger-parser@13.1.0 @asyncapi/parser@3.6.6
-node scripts/validate-contracts.cjs "$validator_dir"
+npx --yes @asyncapi/cli@5.0.7 validate docs/api/asyncapi.yaml
 ```
 
-The validator fails on schema/reference errors. It also prints optional AsyncAPI documentation recommendations; these are distinct from validity errors. The 2.6 contract remains supported by the parser; a newer specification recommendation does not require a migration for this assignment.
+Optional metadata recommendations are distinct from document-validity errors. The old static-contract validator script has been removed.
