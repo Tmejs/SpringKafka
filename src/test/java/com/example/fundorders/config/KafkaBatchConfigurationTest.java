@@ -58,8 +58,7 @@ class KafkaBatchConfigurationTest {
 
     @Test
     void failedDlqPublicationIsNotTreatedAsRecovery() {
-        @SuppressWarnings("unchecked")
-        var template = (KafkaTemplate<String, String>) mock(KafkaTemplate.class);
+        var template = mock(KafkaTemplate.class);
         var failed = new CompletableFuture<org.springframework.kafka.support.SendResult<String, String>>();
         failed.completeExceptionally(new IllegalStateException("DLQ unavailable"));
         when(template.send(any(ProducerRecord.class))).thenReturn(failed);
@@ -74,8 +73,7 @@ class KafkaBatchConfigurationTest {
 
     @Test
     void storageFailureSeeksToFailedOffsetWithoutPublishingOrCommittingIt() {
-        @SuppressWarnings("unchecked")
-        var template = (KafkaTemplate<String, String>) mock(KafkaTemplate.class);
+        var template = mock(KafkaTemplate.class);
         var handler = configuration.batchErrorHandler(template, "fund-orders.DLQ",
                 Duration.ofMillis(1), Duration.ofSeconds(2));
         var record = new ConsumerRecord<>("fund-orders", 0, 7L, "key", "valid");

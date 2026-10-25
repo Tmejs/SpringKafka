@@ -12,6 +12,8 @@ import com.example.fundorders.model.OrderStatus;
 
 import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 
 class FundOrderEventCodecTest {
@@ -65,6 +67,28 @@ class FundOrderEventCodecTest {
     void rejectsUnsupportedSchemaVersion() {
         assertThatThrownBy(() -> codec.decode(VALID_JSON.replace("\"schemaVersion\":1", "\"schemaVersion\":2")))
                 .isInstanceOf(InvalidEventException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0000-12-31T23:59:59.999999999Z",
+            "9999-12-31T23:59:59.999999001Z", "+10000-01-01T00:00:00Z",
+            "+300000-01-01T00:00:00Z", "-300000-01-01T00:00:00Z"})
+    void rejectsUnsupportedTimestampsDuringConsumptionAndPublication(String timestamp) {
+        var json = VALID_JSON.replace("2026-10-21T12:00:00Z", timestamp);
+        var event = new FundOrderStatusEvent(1, UUID.randomUUID(), UUID.randomUUID(),
+                "AGENCY_A", "LU1234567890", OrderStatus.ACCEPTED, Instant.parse(timestamp));
+
+        assertThatThrownBy(() -> codec.decode(json)).isInstanceOf(InvalidEventException.class);
+        assertThatThrownBy(() -> codec.encode(event)).isInstanceOf(InvalidEventException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0001-01-01T00:00:00Z", "9999-12-31T23:59:59.999999Z"})
+    void acceptsSupportedTimestampBoundaries(String timestamp) {
+        var event = codec.decode(VALID_JSON.replace("2026-10-21T12:00:00Z", timestamp));
+
+        assertThat(event.occurredAt()).isEqualTo(Instant.parse(timestamp));
+        assertThat(codec.decode(codec.encode(event))).isEqualTo(event);
     }
 
     @Test
