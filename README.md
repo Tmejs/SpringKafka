@@ -22,7 +22,7 @@ The typed endpoint validates before sending. A valid order status event:
 ```bash
 curl -i -u analyst:change-this-local-password \
   -H 'Content-Type: application/json' \
-  -d '{"schemaVersion":1,"eventId":"f46d8666-dd70-439d-a8f8-9c797ed3cc4d","orderId":"7d9b4d48-8967-4b6b-ad60-a15104115757","partnerCode":"AGENCY_A","fundIsin":"LU1234567890","status":"REJECTED","occurredAt":"2026-10-21T12:00:00Z"}' \
+  -d '{"schemaVersion":1,"eventId":"f46d8666-dd70-439d-a8f8-9c797ed3cc4d","orderId":"7d9b4d48-8967-4b6b-ad60-a15104115757","partnerCode":"AGENCY_A","status":"REJECTED","occurredAt":"2026-10-21T12:00:00Z"}' \
   http://localhost:8080/api/v1/fund-order-events
 ```
 
@@ -71,9 +71,9 @@ flowchart LR
 
 The listener receives up to `APP_KAFKA_MAX_POLL_RECORDS` records per poll and stops at the exact failed record. Spring Kafka commits successful earlier offsets, recovers one permanent failure to the DLQ, and redelivers later records. Actual batch size depends on available records and broker fetches; it is not guaranteed to equal the maximum. Typed events use `orderId` as their Kafka key, preserving per-order partition ordering. Raw text uses a generated key because it may not contain an `orderId`.
 
-Delivery across Kafka and PostgreSQL is **at least once**. The JPA repository reads the persisted events; one native PostgreSQL `INSERT ... ON CONFLICT DO NOTHING` query makes event storage idempotent under concurrent delivery. Every valid replay of an existing `eventId` is ignored, even if its content differs: the first stored version wins. No payload hashing or comparison is performed. There is no cross-system exactly-once transaction. The event schema is intentionally small and fictional: the ISIN rule checks basic format, not instrument existence or banking compliance.
+Delivery across Kafka and PostgreSQL is **at least once**. The JPA repository reads the persisted events; one native PostgreSQL `INSERT ... ON CONFLICT DO NOTHING` query makes event storage idempotent under concurrent delivery. Every valid replay of an existing `eventId` is ignored, even if its content differs: the first stored version wins. No payload hashing or comparison is performed. There is no cross-system exactly-once transaction. The event schema is intentionally small and fictional; it contains order status updates without instrument details.
 
-The schema change removes the hash column directly from V1. Existing development databases initialized with the older V1 must be recreated before running this version; no upgrade migration is included.
+The schema simplifications remove the hash and instrument columns directly from V1. Existing development databases initialized with the older V1 must be recreated before running this version; no upgrade migration is included.
 
 ### Timestamp validation and poison messages
 

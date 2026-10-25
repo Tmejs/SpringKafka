@@ -8,7 +8,6 @@ public record ProcessedFundOrderEvent(
         UUID eventId,
         UUID orderId,
         String partnerCode,
-        String fundIsin,
         OrderStatus status,
         Instant occurredAt,
         Instant processedAt) {

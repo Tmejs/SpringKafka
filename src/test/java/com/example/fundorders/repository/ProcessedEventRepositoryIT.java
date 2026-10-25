@@ -68,7 +68,7 @@ class ProcessedEventRepositoryIT {
         var original = repository.findByEventId(event.eventId()).orElseThrow();
 
         service.process(new FundOrderStatusEvent(1,
-                event.eventId(), event.orderId(), event.partnerCode(), event.fundIsin(),
+                event.eventId(), event.orderId(), event.partnerCode(),
                 OrderStatus.REJECTED, event.occurredAt()));
 
         assertThat(repository.count()).isEqualTo(1);
@@ -98,6 +98,6 @@ class ProcessedEventRepositoryIT {
     private FundOrderStatusEvent event(UUID eventId, Instant occurredAt) {
         return new FundOrderStatusEvent(1, eventId,
                 UUID.fromString("72a11fa8-51ec-4496-9f63-6b1a94f78b73"),
-                "AGENCY_A", "LU1234567890", OrderStatus.ACCEPTED, occurredAt);
+                "AGENCY_A", OrderStatus.ACCEPTED, occurredAt);
     }
 }

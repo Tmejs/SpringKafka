@@ -80,6 +80,7 @@ class FundOrderFlowIT {
         await().atMost(Duration.ofSeconds(20)).untilAsserted(() ->
                 assertThat(send("GET", "/api/v1/fund-order-events/" + eventId, null, null, true).statusCode())
                         .isEqualTo(200));
+        assertThat(read(eventId).body()).doesNotContain("\"fundIsin\"");
         assertThat(send("GET", "/api/v1/fund-order-events", null, null, false).statusCode())
                 .isEqualTo(401);
         assertThat(send("GET", "/actuator/health/liveness", null, null, false).statusCode())
@@ -235,7 +236,7 @@ class FundOrderFlowIT {
     private static String eventJson(UUID eventId, UUID orderId, String status) {
         return """
                 {"schemaVersion":1,"eventId":"%s","orderId":"%s",\
-                "partnerCode":"AGENCY_A","fundIsin":"LU1234567890",\
+                "partnerCode":"AGENCY_A",\
                 "status":"%s","occurredAt":"2026-10-21T12:00:00Z"}
                 """.formatted(eventId, orderId, status);
     }
