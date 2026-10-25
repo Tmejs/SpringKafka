@@ -46,7 +46,7 @@ docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
   --from-beginning --max-messages 1
 ```
 
-A typed request with an unknown status gets `400` and never enters Kafka. Sending the same invalid JSON as raw text gets `202` first, then the consumer routes it to the DLQ. Raw **valid** JSON is processed and stored. Both POST endpoints require Basic authentication. The raw endpoint rejects message text over 64 KiB when encoded as UTF-8 with `413` before publishing to Kafka. The controller checks this after Spring has read the request body; this is a publication limit, not protection against large request allocations.
+A typed request with an unknown status gets `400` and never enters Kafka. Sending the same invalid JSON as raw text gets `202` first, then the consumer routes it to the DLQ. Raw **valid** JSON is processed and stored. Both POST endpoints require Basic authentication. The application has no custom raw message size limit; Kafka producer and broker limits still apply.
 
 ## What the consumer does
 
@@ -77,9 +77,9 @@ The schema simplifications remove the hash and instrument columns directly from 
 
 ### Timestamp validation and poison messages
 
-`occurredAt` must be between `0001-01-01T00:00:00Z` and `9999-12-31T23:59:59.999999Z` inclusive. These limits keep event dates within PostgreSQL's storage range and avoid rounding the upper endpoint into year 10000. The shared codec checks this before publication and before consumer persistence.
+`occurredAt` is parsed as a Java `Instant`; the codec does not impose a custom date range. A typed request containing a parseable timestamp can receive HTTP 202 even if PostgreSQL cannot store that date. HTTP 202 confirms Kafka publication, not successful database processing.
 
-Typed requests with unsupported timestamps return HTTP 400 before publishing. Raw requests remain accepted for asynchronous validation; records with unsupported timestamps go to the DLQ with their original payload and source metadata, and later records can continue. The same applies to records published directly to Kafka. Transient database failures still retry; failed DLQ publication still leaves the source record pending.
+During consumption, PostgreSQL datetime overflow (SQLSTATE `22008`) is translated into a permanent event failure and sent to the DLQ with the original payload and source metadata. Later records can continue. This applies to typed, raw, and direct Kafka publications. Other database failures retain delayed retries, and a failed DLQ publication leaves the source record pending. PostgreSQL stores timestamps at microsecond precision; finer input precision may be rounded.
 
 ## Code layout
 
