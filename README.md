@@ -13,9 +13,15 @@ docker compose ps
 curl -fsS http://localhost:8080/actuator/health/readiness
 ```
 
-The sample credentials in `.env.example` are for local use only. Change both passwords before sharing the stack. Compose exposes the app on `localhost:8080` and Kafka on `localhost:9092`; PostgreSQL stays on the Compose network. The app creates the source and DLQ topics with three partitions each and Flyway creates the database table. To stop the stack, run `docker compose down`. `docker compose down -v` also removes PostgreSQL data.
+The sample credentials in `.env.example` are for local use only. Change both passwords before sharing the stack. Compose exposes the app on `localhost:8080`, Kafka on `localhost:9092`, and Kafka UI on `localhost:8081`; PostgreSQL stays on the Compose network. The app creates the source and DLQ topics with three partitions each and Flyway creates the database table. To stop the stack, run `docker compose down`. `docker compose down -v` also removes PostgreSQL data.
 
 For a guided interview presentation and runnable curl scenarios, see [the demo guide](docs/demo.md) and run `./scripts/demo.sh --help`.
+
+## Kafka browser UI
+
+Compose includes Kafbat UI at [http://localhost:8081](http://localhost:8081). To add it to an already running stack, run `docker compose up -d kafka-ui`. It connects to Kafka over the internal `kafka:19092` listener and is bound to localhost for local development.
+
+Under **Topics**, inspect `fund-order-events` and `fund-order-events.DLQ`, including message values and headers. Under **Consumer Groups**, inspect `fund-order-events-processor` offsets and lag. Topic and group names follow your environment configuration. This UI is a separate local tool; application Basic authentication does not apply to it.
 
 ## Try the two publication paths
 

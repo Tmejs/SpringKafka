@@ -28,7 +28,7 @@ docker compose ps
 curl -fsS http://localhost:8080/actuator/health/readiness
 ```
 
-The first build may take longer because it downloads images and dependencies. If startup fails, inspect `docker compose logs --tail=100 app kafka postgres`. Port 8080 and Kafka port 9092 must be available; `docker ps` shows existing containers using them. Stop an older stack deliberately before starting this one. Do not delete an existing database volume as a routine startup step.
+The first build may take longer because it downloads images and dependencies. If startup fails, inspect `docker compose logs --tail=100 app kafka postgres kafka-ui`. Ports 8080 (application), 8081 (Kafka UI), and 9092 (Kafka) must be available; `docker ps` shows existing containers using them. Stop an older stack deliberately before starting this one. Do not delete an existing database volume as a routine startup step.
 
 Flyway initializes the database, and the application creates the configured source/DLQ topics by default. An older database created before the V1 schema simplifications requires a deliberate fresh development database; the application does not include an upgrade migration for that old schema.
 
@@ -57,6 +57,16 @@ set +a
 `publish` sends a typed JSON event with status `REJECTED` and prints the Kafka topic, partition, offset and key from its receipt. `read` polls for up to 30 seconds because consumption is asynchronous. `raw-valid` publishes proper JSON as text and waits until it is readable. IDs are generated afresh for each command by default.
 
 To choose IDs yourself, export `EVENT_ID` and `ORDER_ID` as valid UUIDs. The invalid typed scenario always generates a fresh event ID so its 404 check remains meaningful. Unset them afterwards to return to fresh IDs. Records from previous runs remain in the list.
+
+## Inspect Kafka in the browser
+
+Open [http://localhost:8081](http://localhost:8081). If the stack was started before Kafka UI was added, run `docker compose up -d kafka-ui` first.
+
+- **Topics → fund-order-events → Messages:** browse source events.
+- **Topics → fund-order-events.DLQ → Messages:** find the malformed message marker and inspect the original-source/error headers.
+- **Consumer Groups → fund-order-events-processor:** inspect committed offsets and lag.
+
+Use your configured topic/group names if changed from the defaults. Select messages from the beginning or an earlier offset when inspecting previously consumed records. Consumption does not remove records from Kafka. The UI is exposed only on localhost and has no application Basic-auth login.
 
 ## Demonstrate validation and the DLQ
 
