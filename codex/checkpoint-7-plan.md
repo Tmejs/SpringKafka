@@ -24,3 +24,9 @@ Review focus: requests without ISIN publish successfully, source/response/schema
 - Current source has only intentional fundIsin response-absence assertions; API YAML parsing and diff checks pass.
 - Fresh coverage target/site/jacoco: 187/205 lines (91.2%), 31/44 branches (70.5%). Historical committed snapshot unchanged per directory preference.
 - Release follows the established checkpoint workflow.
+
+## Concurrent edit preservation
+
+User authorized preserving repository formatting separately: commit 62b7016 contains only two mapping-call line breaks. Independent review PASS; combined clean verify again passed all 49 unit and 14 integration tests.
+
+Two later unrelated main edits (timestamp validation removal and a JSON fixture change) were explicitly excluded from integration at the user's direction. They are preserved locally in commit a7a698f on codex/checkpoint-7-saved-local-edits. That work-in-progress branch is not merged or published. Main was returned to a clean state through the saved branch commit, without discarding these edits. The tested ISIN checkpoint retains timestamp validation.

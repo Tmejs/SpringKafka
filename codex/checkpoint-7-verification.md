@@ -32,3 +32,9 @@ checkpoint_7_review initially identified the obsolete repository test constructo
 ## Release procedure
 
 Push checkpoint branch and compare local/tracking/remote SHAs. Merge --no-ff into clean synchronized main, rerun full clean verify on merged main, push main and compare all main SHAs. Preserve checkpoint branch. No hosted CI added.
+
+## Concurrent edit preservation
+
+User authorized preserving repository formatting separately: commit 62b7016 contains only two mapping-call line breaks. Independent review PASS; combined clean verify again passed all 49 unit and 14 integration tests.
+
+Two later unrelated main edits (timestamp validation removal and a JSON fixture change) were explicitly excluded from integration at the user's direction. They are preserved locally in commit a7a698f on codex/checkpoint-7-saved-local-edits. That work-in-progress branch is not merged or published. Main was returned to a clean state through the saved branch commit, without discarding these edits. The tested ISIN checkpoint retains timestamp validation.
