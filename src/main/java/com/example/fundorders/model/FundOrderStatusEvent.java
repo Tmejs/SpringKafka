@@ -12,7 +12,6 @@ public record FundOrderStatusEvent(
         @NotNull UUID eventId,
         @NotNull UUID orderId,
         @NotBlank @Pattern(regexp = "[A-Z0-9_]{2,32}") String partnerCode,
-        @NotBlank @Pattern(regexp = "[A-Z]{2}[A-Z0-9]{10}") String fundIsin,
         @NotNull OrderStatus status,
         @NotNull Instant occurredAt) {
 }

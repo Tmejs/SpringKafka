@@ -53,7 +53,7 @@ class EventPublisherTest {
         givenAcknowledgment();
         var event = new FundOrderStatusEvent(1, UUID.randomUUID(),
                 UUID.fromString("72a11fa8-51ec-4496-9f63-6b1a94f78b73"),
-                "AGENCY_A", "LU1234567890", OrderStatus.ACCEPTED, Instant.parse("2026-10-21T12:00:00Z"));
+                "AGENCY_A", OrderStatus.ACCEPTED, Instant.parse("2026-10-21T12:00:00Z"));
         when(codec.encode(event)).thenReturn("{\"eventId\":\"one\"}");
 
         publisher.publish(event);

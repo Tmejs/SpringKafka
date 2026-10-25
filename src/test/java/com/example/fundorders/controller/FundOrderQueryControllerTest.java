@@ -43,6 +43,7 @@ class FundOrderQueryControllerTest {
         mvc.perform(get("/api/v1/fund-order-events?page=0&size=20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].eventId").value(event.eventId().toString()))
+                .andExpect(jsonPath("$.content[0].fundIsin").doesNotExist())
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(20));
@@ -71,7 +72,8 @@ class FundOrderQueryControllerTest {
 
         mvc.perform(get("/api/v1/fund-order-events/" + event.eventId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("REJECTED"));
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.fundIsin").doesNotExist());
         mvc.perform(get("/api/v1/fund-order-events/" + UUID.randomUUID()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
@@ -79,7 +81,7 @@ class FundOrderQueryControllerTest {
 
     private static ProcessedFundOrderEvent storedEvent() {
         return new ProcessedFundOrderEvent(1, UUID.randomUUID(), UUID.randomUUID(),
-                "AGENCY_A", "LU1234567890", OrderStatus.REJECTED,
+                "AGENCY_A", OrderStatus.REJECTED,
                 Instant.parse("2026-10-21T12:00:00Z"), Instant.parse("2026-10-21T12:00:01Z"));
     }
 }

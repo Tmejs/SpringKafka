@@ -86,6 +86,6 @@ class FundOrderBatchListenerTest {
 
     private static FundOrderStatusEvent event() {
         return new FundOrderStatusEvent(1, UUID.randomUUID(), UUID.randomUUID(), "AGENCY_A",
-                "LU1234567890", OrderStatus.ACCEPTED, Instant.parse("2026-10-21T12:00:00Z"));
+                OrderStatus.ACCEPTED, Instant.parse("2026-10-21T12:00:00Z"));
     }
 }

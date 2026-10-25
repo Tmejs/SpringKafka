@@ -21,33 +21,32 @@ public interface ProcessedEventRepository extends JpaRepository<ProcessedEventEn
     @Modifying
     @Query(value = """
             INSERT INTO processed_fund_order_events
-                (event_id, schema_version, order_id, partner_code, fund_isin,
-                 status, occurred_at)
-            VALUES (:eventId, :schemaVersion, :orderId, :partnerCode, :fundIsin,
-                    :status, :occurredAt)
+                (event_id, schema_version, order_id, partner_code, status, occurred_at)
+            VALUES (:eventId, :schemaVersion, :orderId, :partnerCode, :status, :occurredAt)
             ON CONFLICT (event_id) DO NOTHING
             """, nativeQuery = true)
     int insertIfAbsent(@Param("eventId") UUID eventId,
             @Param("schemaVersion") int schemaVersion,
             @Param("orderId") UUID orderId,
             @Param("partnerCode") String partnerCode,
-            @Param("fundIsin") String fundIsin,
             @Param("status") String status,
             @Param("occurredAt") Instant occurredAt);
 
     default boolean insertIfAbsent(FundOrderStatusEvent event) {
         return insertIfAbsent(event.eventId(), event.schemaVersion(), event.orderId(),
-                event.partnerCode(), event.fundIsin(), event.status().name(),
+                event.partnerCode(), event.status().name(),
                 event.occurredAt()) == 1;
     }
 
     default Optional<ProcessedFundOrderEvent> findByEventId(UUID eventId) {
-        return findById(eventId).map(ProcessedEventEntity::toModel);
+        return findById(eventId)
+                .map(ProcessedEventEntity::toModel);
     }
 
     default Page<ProcessedFundOrderEvent> findPage(Pageable pageable) {
         var order = Sort.by(Sort.Order.desc("occurredAt"), Sort.Order.desc("eventId"));
         var orderedPage = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), order);
-        return findAll(orderedPage).map(ProcessedEventEntity::toModel);
+        return findAll(orderedPage)
+                .map(ProcessedEventEntity::toModel);
     }
 }

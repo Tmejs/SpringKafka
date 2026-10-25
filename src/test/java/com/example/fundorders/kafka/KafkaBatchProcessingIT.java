@@ -258,7 +258,7 @@ class KafkaBatchProcessingIT {
 
     private String event(UUID eventId, UUID orderId, OrderStatus status) {
         return codec.encode(new FundOrderStatusEvent(1, eventId, orderId,
-                "AGENCY_A", "LU1234567890", status, Instant.parse("2026-10-21T12:00:00Z")));
+                "AGENCY_A", status, Instant.parse("2026-10-21T12:00:00Z")));
     }
 
     private long publish(UUID orderId, String value) throws Exception {

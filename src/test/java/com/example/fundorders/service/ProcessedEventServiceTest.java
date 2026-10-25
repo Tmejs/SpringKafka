@@ -24,7 +24,7 @@ class ProcessedEventServiceTest {
                 Validation.buildDefaultValidatorFactory().getValidator());
         var service = new ProcessedEventService(repository, codec);
         var event = new FundOrderStatusEvent(1, UUID.randomUUID(), UUID.randomUUID(),
-                "AGENCY_A", "LU1234567890", OrderStatus.REJECTED,
+                "AGENCY_A", OrderStatus.REJECTED,
                 Instant.parse("2026-10-21T12:00:00Z"));
         var outage = new DataAccessResourceFailureException("database unavailable");
         when(repository.insertIfAbsent(event))

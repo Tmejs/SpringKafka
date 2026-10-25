@@ -20,7 +20,7 @@ class FundOrderEventCodecTest {
     private static final String VALID_JSON = """
             {"schemaVersion":1,"eventId":"3c6fc787-e729-46c0-b199-8c8a737c2251",
              "orderId":"72a11fa8-51ec-4496-9f63-6b1a94f78b73","partnerCode":"AGENCY_A",
-             "fundIsin":"LU1234567890","status":"ACCEPTED","occurredAt":"2026-10-21T12:00:00Z"}
+             "status":"ACCEPTED","occurredAt":"2026-10-21T12:00:00Z"}
             """;
 
     private final FundOrderEventCodec codec = new FundOrderEventCodec(
@@ -34,7 +34,7 @@ class FundOrderEventCodecTest {
         assertThat(event).isEqualTo(new FundOrderStatusEvent(1,
                 UUID.fromString("3c6fc787-e729-46c0-b199-8c8a737c2251"),
                 UUID.fromString("72a11fa8-51ec-4496-9f63-6b1a94f78b73"),
-                "AGENCY_A", "LU1234567890", OrderStatus.ACCEPTED,
+                "AGENCY_A", OrderStatus.ACCEPTED,
                 Instant.parse("2026-10-21T12:00:00Z")));
     }
 
@@ -58,8 +58,8 @@ class FundOrderEventCodecTest {
     }
 
     @Test
-    void rejectsInvalidIsinFormat() {
-        assertThatThrownBy(() -> codec.decode(VALID_JSON.replace("LU1234567890", "bad")))
+    void rejectsInvalidPartnerCodeFormat() {
+        assertThatThrownBy(() -> codec.decode(VALID_JSON.replace("AGENCY_A", "bad")))
                 .isInstanceOf(InvalidEventException.class);
     }
 
@@ -76,7 +76,7 @@ class FundOrderEventCodecTest {
     void rejectsUnsupportedTimestampsDuringConsumptionAndPublication(String timestamp) {
         var json = VALID_JSON.replace("2026-10-21T12:00:00Z", timestamp);
         var event = new FundOrderStatusEvent(1, UUID.randomUUID(), UUID.randomUUID(),
-                "AGENCY_A", "LU1234567890", OrderStatus.ACCEPTED, Instant.parse(timestamp));
+                "AGENCY_A", OrderStatus.ACCEPTED, Instant.parse(timestamp));
 
         assertThatThrownBy(() -> codec.decode(json)).isInstanceOf(InvalidEventException.class);
         assertThatThrownBy(() -> codec.encode(event)).isInstanceOf(InvalidEventException.class);

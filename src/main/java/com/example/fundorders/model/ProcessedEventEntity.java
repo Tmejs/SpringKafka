@@ -26,9 +26,6 @@ public class ProcessedEventEntity {
     @Column(name = "partner_code", nullable = false, length = 32)
     private String partnerCode;
 
-    @Column(name = "fund_isin", nullable = false, length = 12)
-    private String fundIsin;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 16)
     private OrderStatus status;
@@ -44,6 +41,6 @@ public class ProcessedEventEntity {
 
     public ProcessedFundOrderEvent toModel() {
         return new ProcessedFundOrderEvent(schemaVersion, eventId, orderId, partnerCode,
-                fundIsin, status, occurredAt, processedAt);
+                status, occurredAt, processedAt);
     }
 }

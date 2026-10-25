@@ -50,7 +50,7 @@ components:
   schemas:
     FundOrderStatusEvent:
       type: object
-      required: [schemaVersion, eventId, orderId, partnerCode, fundIsin, status, occurredAt]
+      required: [schemaVersion, eventId, orderId, partnerCode, status, occurredAt]
       properties:
         schemaVersion:
           type: integer
@@ -64,9 +64,6 @@ components:
         partnerCode:
           type: string
           pattern: '^[A-Z0-9_]{2,32}$'
-        fundIsin:
-          type: string
-          pattern: '^[A-Z]{2}[A-Z0-9]{10}$'
         status:
           type: string
           enum: [ACCEPTED, REJECTED, EXECUTED]
