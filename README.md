@@ -1,6 +1,6 @@
 # Fund order event processing
 
-Java 21 / Spring Boot application for a fictional investment-fund trading partner. It accepts order status events over HTTP, publishes their JSON text to Kafka, consumes Kafka records in batches, and exposes successfully processed events from PostgreSQL. Invalid Kafka content goes to a dead-letter topic (DLQ). `REJECTED` is a valid business status and is stored normally.
+Java 21 / Spring Boot application for a fictional investment-fund trading partner. It accepts order status events over HTTP, publishes their JSON text to Kafka, consumes Kafka records in batches, and exposes successfully processed events from PostgreSQL. Invalid Kafka content goes to a dead-letter topic (DLQ).
 
 ## Run locally
 
