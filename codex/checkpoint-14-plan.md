@@ -1,0 +1,3 @@
+# Checkpoint 14: public Swagger documentation
+
+User requests anonymous Swagger access in Basic and JWT profiles. Permit only the existing Swagger HTML/assets and OpenAPI JSON/YAML/config paths; business authentication, JWT scopes and global API security metadata remain unchanged. Kubernetes may still disable documentation entirely. Update both real HTTP integration tests first, reproduce their current401 failures, change both chains, update active docs, run full cleanverify and generated-contract validation, request independent review, record evidence, push checkpoint, no-ff merge, verify merged main and push. Preserve checkpoint branch.

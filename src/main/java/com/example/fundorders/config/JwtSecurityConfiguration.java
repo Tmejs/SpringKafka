@@ -40,7 +40,7 @@ public class JwtSecurityConfiguration {
                         .requestMatchers("/actuator/health", "/actuator/health/liveness",
                                 "/actuator/health/readiness").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs",
-                                "/v3/api-docs/**", "/v3/api-docs.yaml").authenticated()
+                                "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/fund-order-events",
                                 "/api/v1/fund-order-events/**").hasAuthority("SCOPE_fund-orders.read")
                         .requestMatchers(HttpMethod.HEAD, "/api/v1/fund-order-events",
