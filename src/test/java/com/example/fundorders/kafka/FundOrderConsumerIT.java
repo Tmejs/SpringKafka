@@ -5,12 +5,13 @@ import static org.awaitility.Awaitility.await;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import com.example.fundorders.model.OrderStatus;
+import com.example.fundorders.repository.ProcessedEventRepository;
 import com.example.fundorders.support.MessagingIntegrationTestSupport;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -19,14 +20,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
 
 class FundOrderConsumerIT extends MessagingIntegrationTestSupport {
     private static final int PARTITION = 1;
 
     @Autowired
-    JdbcTemplate database;
+    ProcessedEventRepository repository;
 
     @Test
     void directlyPublishedEventIsStoredInPostgres() throws Exception {
@@ -39,7 +39,7 @@ class FundOrderConsumerIT extends MessagingIntegrationTestSupport {
             assertThat(metadata.partition()).isEqualTo(PARTITION);
         }
 
-        assertStored(eventId, orderId, "REJECTED");
+        assertStored(eventId, orderId, OrderStatus.REJECTED);
     }
 
     @ParameterizedTest(name = "directly published {0} reaches the DLQ")
@@ -72,9 +72,8 @@ class FundOrderConsumerIT extends MessagingIntegrationTestSupport {
             assertThat(headers.lastHeader(KafkaHeaders.DLT_EXCEPTION_FQCN)).isNotNull();
         }
 
-        assertStored(nextId, orderId, "EXECUTED");
-        assertThat(database.queryForObject("SELECT COUNT(*) FROM processed_fund_order_events WHERE event_id = ?",
-                Long.class, invalidId)).isZero();
+        assertStored(nextId, orderId, OrderStatus.EXECUTED);
+        assertThat(repository.findByEventId(invalidId)).isEmpty();
     }
 
     private static Stream<Arguments> invalidMessages() {
@@ -88,19 +87,19 @@ class FundOrderConsumerIT extends MessagingIntegrationTestSupport {
                                 .replace("\"schemaVersion\":1", "\"schemaVersion\":2")));
     }
 
-    private void assertStored(UUID eventId, UUID orderId, String status) {
+    private void assertStored(UUID eventId, UUID orderId, OrderStatus status) {
         await().atMost(WAIT).untilAsserted(() -> {
-            var rows = database.queryForList("SELECT * FROM processed_fund_order_events WHERE event_id = ?", eventId);
-            assertThat(rows).hasSize(1);
-            var stored = rows.getFirst();
-            assertThat(stored.get("event_id")).isEqualTo(eventId);
-            assertThat(stored.get("schema_version")).isEqualTo(1);
-            assertThat(stored.get("order_id")).isEqualTo(orderId);
-            assertThat(stored.get("partner_code")).isEqualTo("AGENCY_A");
-            assertThat(stored.get("status")).isEqualTo(status);
-            assertThat(((Timestamp) stored.get("occurred_at")).toInstant())
+            var result = repository.findByEventId(eventId);
+            assertThat(result).isPresent();
+            var stored = result.orElseThrow();
+            assertThat(stored.eventId()).isEqualTo(eventId);
+            assertThat(stored.schemaVersion()).isEqualTo(1);
+            assertThat(stored.orderId()).isEqualTo(orderId);
+            assertThat(stored.partnerCode()).isEqualTo("AGENCY_A");
+            assertThat(stored.status()).isEqualTo(status);
+            assertThat(stored.occurredAt())
                     .isEqualTo(Instant.parse("2026-10-26T12:00:00Z"));
-            assertThat(stored.get("processed_at")).isNotNull();
+            assertThat(stored.processedAt()).isNotNull();
         });
     }
 }

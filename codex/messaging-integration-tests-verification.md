@@ -20,3 +20,11 @@ Java 21.0.8, Docker, Kafka `apache/kafka:4.0.0`, PostgreSQL `postgres:16-alpine`
 5. Before commit, fetch confirmed local `main` and `origin/main` matched the baseline above. Changes committed directly to `main` under the user's project-specific workflow override.
 
 Build logs for this local run: `/tmp/nordea-messaging-focused-it.log` and `/tmp/nordea-messaging-verify.log`. Maven XML reports and coverage output are generated build artifacts.
+
+## Follow-up: repository-based assertions
+
+At the user's request, `FundOrderConsumerIT` now injects the existing `ProcessedEventRepository` bean instead of `JdbcTemplate`. `findByEventId` verifies persistence and absence; typed model accessors retain all field assertions. Kafka clients, DLQ assertions and test scenarios are unchanged.
+
+- Java 21 `./mvnw clean verify` — BUILD SUCCESS; 65 unit tests and 14 integration tests, zero failures/errors/skips. Coverage reports regenerated. Log: `/tmp/nordea-repository-it-verify.log`.
+- Independent static follow-up review by `messaging_it_review` — no Critical or Important findings; confirmed repository reads occur anew on each Awaitility poll without an enclosing test transaction.
+- `git diff --check` — passed. Direct `main` commit under the user's workflow override.
