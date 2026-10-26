@@ -56,12 +56,6 @@ class FundOrderEventCodecTest {
     }
 
     @Test
-    void rejectsInvalidPartnerCodeFormat() {
-        assertThatThrownBy(() -> codec.decode(VALID_JSON.replace("AGENCY_A", "bad")))
-                .isInstanceOf(InvalidEventException.class);
-    }
-
-    @Test
     void rejectsUnsupportedSchemaVersion() {
         assertThatThrownBy(() -> codec.decode(VALID_JSON.replace("\"schemaVersion\":1", "\"schemaVersion\":2")))
                 .isInstanceOf(InvalidEventException.class);

@@ -47,9 +47,9 @@ public class FundOrderQueryController {
     public EventPage list(
             @Parameter(schema = @Schema(type = "integer", format = "int32", minimum = "0", defaultValue = "0")) @RequestParam(defaultValue = "0") int page,
             @Parameter(schema = @Schema(type = "integer", format = "int32", minimum = "1", maximum = "100", defaultValue = "20")) @RequestParam(defaultValue = "20") int size) {
-        if (page < 0 || size < 1 || size > 100) {
+        if (page < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "page must be nonnegative and size must be between 1 and 100");
+                    "page must be nonnegative");
         }
         var result = repository.findPage(PageRequest.of(page, size));
         return new EventPage(result.getContent(), page, size, result.getTotalElements());

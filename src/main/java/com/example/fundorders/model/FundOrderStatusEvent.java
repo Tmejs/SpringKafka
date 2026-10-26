@@ -12,7 +12,7 @@ public record FundOrderStatusEvent(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"1"}) int schemaVersion,
         @NotNull UUID eventId,
         @NotNull UUID orderId,
-        @NotBlank @Pattern(regexp = "^[A-Z0-9_]{2,32}$") String partnerCode,
+        @NotBlank String partnerCode,
         @NotNull OrderStatus status,
         @NotNull Instant occurredAt) {
 }

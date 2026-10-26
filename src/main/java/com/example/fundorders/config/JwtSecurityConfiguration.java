@@ -54,7 +54,6 @@ public class JwtSecurityConfiguration {
                             public <O extends BearerTokenAuthenticationFilter> O postProcess(O filter) {
                                 var handler = new AuthenticationEntryPointFailureHandler(
                                         new BearerTokenAuthenticationEntryPoint());
-                                // Key-fetch failures must fail authentication without a servlet error dispatch.
                                 handler.setRethrowAuthenticationServiceException(false);
                                 filter.setAuthenticationFailureHandler(handler);
                                 return filter;
