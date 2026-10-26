@@ -28,3 +28,11 @@ At the user's request, `FundOrderConsumerIT` now injects the existing `Processed
 - Java 21 `./mvnw clean verify` — BUILD SUCCESS; 65 unit tests and 14 integration tests, zero failures/errors/skips. Coverage reports regenerated. Log: `/tmp/nordea-repository-it-verify.log`.
 - Independent static follow-up review by `messaging_it_review` — no Critical or Important findings; confirmed repository reads occur anew on each Awaitility poll without an enclosing test transaction.
 - `git diff --check` — passed. Direct `main` commit under the user's workflow override.
+
+## Follow-up: MockMvc publication tests
+
+`EventPublishControllerIT` now performs requests through autowired `MockMvc` with Basic credentials and explicit UTF-8 encoding. Shared test support uses `@SpringBootTest(webEnvironment = MOCK)` and `@AutoConfigureMockMvc`; actual security filters, publisher, Kafka and PostgreSQL remain active. Both new classes reuse the same context and containers. Kafka payload/key/receipt assertions are unchanged. `FundOrderFlowIT` continues to exercise network HTTP.
+
+- Java 21 `./mvnw clean verify` — BUILD SUCCESS; 65 unit tests and 14 integration tests, zero failures/errors/skips; coverage reports regenerated. Log: `/tmp/nordea-mockmvc-it-verify.log`.
+- Independent static follow-up review by `messaging_it_review` — no Critical or Important findings; confirmed security filters, UTF-8 preservation, context sharing and actual broker assertions.
+- Reviewer guide updated; `git diff --check` passed. Direct `main` commit under the user's workflow override.

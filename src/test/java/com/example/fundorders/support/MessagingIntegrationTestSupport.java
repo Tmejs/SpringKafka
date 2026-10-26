@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
@@ -31,7 +32,7 @@ import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(classes = FundOrdersApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = {
                 "app.security.username=messaging-it-user",
                 "app.security.password=messaging-it-password",
@@ -42,6 +43,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
                 "spring.kafka.admin.auto-create=true",
                 "spring.kafka.consumer.group-id=messaging-boundary-it-group"
         })
+@AutoConfigureMockMvc
 @ActiveProfiles("default")
 @Import(MessagingIntegrationTestSupport.Containers.class)
 public abstract class MessagingIntegrationTestSupport {
