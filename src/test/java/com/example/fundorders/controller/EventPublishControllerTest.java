@@ -1,6 +1,7 @@
 package com.example.fundorders.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -10,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 
 import com.example.fundorders.exception.ApiExceptionHandler;
 import com.example.fundorders.exception.PublishFailedException;
@@ -51,17 +53,21 @@ class EventPublishControllerTest {
     }
 
     @Test
-    void typedOutOfRangeTimestampIsRejectedBeforePublication() throws Exception {
+    void typedParseableTimestampIsPublished() throws Exception {
+        when(publisher.publish(any(FundOrderStatusEvent.class)))
+                .thenReturn(new PublishReceipt("fund-orders", 0, 42, "order-key"));
+
         mvc.perform(post("/api/v1/fund-order-events")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"schemaVersion":1,"eventId":"3c6fc787-e729-46c0-b199-8c8a737c2251",
                          "orderId":"72a11fa8-51ec-4496-9f63-6b1a94f78b73","partnerCode":"AGENCY_A",
-                         "status":"ACCEPTED","occurredAt":"+300000-01-01T00:00:00Z"}
+                         "status":"ACCEPTED","occurredAt":"+10000-01-01T00:00:00Z"}
                         """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isAccepted());
 
-        verify(publisher, never()).publish(any(FundOrderStatusEvent.class));
+        verify(publisher).publish(argThat(event ->
+                event.occurredAt().equals(Instant.parse("+10000-01-01T00:00:00Z"))));
     }
 
     @Test

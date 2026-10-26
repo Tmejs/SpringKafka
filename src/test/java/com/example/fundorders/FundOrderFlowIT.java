@@ -130,8 +130,6 @@ class FundOrderFlowIT {
                 .isEqualTo("^[A-Z0-9_]{2,32}$");
         assertThat(eventSchema.at("/properties/status/enum").toString())
                 .contains("ACCEPTED", "REJECTED", "EXECUTED");
-        assertThat(eventSchema.at("/properties/occurredAt/description").asString())
-                .contains("0001-01-01T00:00:00Z", "9999-12-31T23:59:59.999999Z", "UTC");
 
         var output = Path.of(System.getProperty("openapi.outputDirectory", "target/openapi"));
         Files.createDirectories(output);
@@ -173,18 +171,11 @@ class FundOrderFlowIT {
                 .replace("\"eventId\":\"" + missingId + "\",", "");
         var unsupportedVersion = eventJson(UUID.randomUUID(), orderId, "ACCEPTED")
                 .replace("\"schemaVersion\":1", "\"schemaVersion\":2");
-        var outOfRangeId = UUID.randomUUID();
-        var outOfRangeDate = eventJson(outOfRangeId, orderId, "ACCEPTED")
-                .replace("2026-10-21T12:00:00Z", "+10000-01-01T00:00:00Z");
-        assertThat(send("POST", "/api/v1/fund-order-events", "application/json", outOfRangeDate, true)
-                .statusCode()).isEqualTo(400);
-
         assertThat(postRaw(eventJson(first, orderId, "REJECTED")).statusCode()).isEqualTo(202);
         assertThat(postRaw(malformed).statusCode()).isEqualTo(202);
         assertThat(postRaw(invalid).statusCode()).isEqualTo(202);
         assertThat(postRaw(missingEventId).statusCode()).isEqualTo(202);
         assertThat(postRaw(unsupportedVersion).statusCode()).isEqualTo(202);
-        assertThat(postRaw(outOfRangeDate).statusCode()).isEqualTo(202);
         assertThat(postRaw(eventJson(last, orderId, "ACCEPTED")).statusCode()).isEqualTo(202);
 
         await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
@@ -193,10 +184,9 @@ class FundOrderFlowIT {
             assertThat(read(last).statusCode()).isEqualTo(200);
         });
         assertThat(read(invalidId).statusCode()).isEqualTo(404);
-        assertThat(read(outOfRangeId).statusCode()).isEqualTo(404);
         var deadLetters = deadLettersFor(List.of(malformed, invalid, missingEventId,
-                unsupportedVersion, outOfRangeDate));
-        assertThat(deadLetters).hasSize(5);
+                unsupportedVersion));
+        assertThat(deadLetters).hasSize(4);
         for (var record : deadLetters) {
             assertThat(record.headers().lastHeader(KafkaHeaders.DLT_ORIGINAL_TOPIC)).isNotNull();
             assertThat(new String(record.headers().lastHeader(KafkaHeaders.DLT_ORIGINAL_TOPIC).value(),

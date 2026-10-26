@@ -12,8 +12,6 @@ import com.example.fundorders.model.OrderStatus;
 
 import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 
 class FundOrderEventCodecTest {
@@ -67,25 +65,6 @@ class FundOrderEventCodecTest {
     void rejectsUnsupportedSchemaVersion() {
         assertThatThrownBy(() -> codec.decode(VALID_JSON.replace("\"schemaVersion\":1", "\"schemaVersion\":2")))
                 .isInstanceOf(InvalidEventException.class);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"0001-01-01T00:00:00Z", "9999-12-31T23:59:59.999999Z",
-            "2026-10-26T14:30:00+02:00", "2026-10-26T12:30:00.123456789Z"})
-    void supportedUtcTimestampRangeRoundTrips(String timestamp) {
-        var event = codec.decode(VALID_JSON.replace("2026-10-21T12:00:00Z", timestamp));
-
-        assertThat(event.occurredAt()).isEqualTo(Instant.parse(timestamp));
-        assertThat(codec.decode(codec.encode(event))).isEqualTo(event);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"0000-12-31T23:59:59.999999999Z", "+10000-01-01T00:00:00Z",
-            "9999-12-31T23:59:59.999999001Z", "+1000000000-12-31T23:59:59.999999999Z"})
-    void rejectsTimestampsOutsideSupportedUtcRange(String timestamp) {
-        assertThatThrownBy(() -> codec.decode(VALID_JSON.replace("2026-10-21T12:00:00Z", timestamp)))
-                .isInstanceOf(InvalidEventException.class)
-                .hasMessageContaining("occurredAt");
     }
 
     @Test

@@ -1,6 +1,6 @@
 # Recruiter review and interview study guide
 
-Originally reviewed on 26 October 2026 against commit `ecbb650`; timestamp-contract and retry-logging notes updated with subsequent changes.
+Originally reviewed on 26 October 2026 against commit `ecbb650`; retry-logging notes updated with subsequent changes.
 
 Use this alongside the [requirements map](../readme-reviewer.md). The answers below describe this implementation; improvement proposals are explicitly identified and are not implemented by this document.
 
@@ -75,7 +75,7 @@ The listener stops at B, so C is not processed on the initial invocation. Offset
 
 ### 7. What belongs in the DLQ?
 
-A permanent message defect: malformed JSON, unsupported schema version, invalid required fields/status, or a timestamp that cannot be persisted. The current code maps those cases to `InvalidEventException`. Adding it to the nonretryable list preserves Spring Kafka's built-in fatal classifications: a `ClassCastException`, for example, also goes straight to recovery even if it indicates a code bug. That broader policy deserves review before production. `REJECTED` is a legitimate business status and is stored. An ordinary database outage should retain retries, rather than turn all valid events into DLQ entries. Typed HTTP validation failures return 400 before publication and never reach the DLQ.
+A permanent message defect: malformed JSON, unsupported schema version, or invalid required fields/status. The current code maps those cases to `InvalidEventException`. Adding it to the nonretryable list preserves Spring Kafka's built-in fatal classifications: a `ClassCastException`, for example, also goes straight to recovery even if it indicates a code bug. That broader policy deserves review before production. `REJECTED` is a legitimate business status and is stored. An ordinary database outage should retain retries, rather than turn all valid events into DLQ entries. Typed HTTP validation failures return 400 before publication and never reach the DLQ.
 
 ### 8. What happens if the database or DLQ is unavailable?
 
@@ -83,7 +83,7 @@ A database infrastructure failure retains the failed source record for delayed r
 
 ### 9. Are infinite retries safe?
 
-Indefinite retries apply to exceptions classified as retryable. They avoid discarding valid data during an outage, but an unclassified permanent bug can block progress indefinitely. The timestamp conversion issue was an example of why classification matters. Production needs alerts and an operator decision after prolonged failure, not blind retries without ownership. For long retry delays I would evaluate container-pausing backoff; adding `@RetryableTopic` directly is not a supported solution for a batch listener. [Spring Kafka describes the relevant backoff and batch restrictions](https://docs.spring.io/spring-kafka/reference/kafka/annotation-error-handling.html).
+Indefinite retries apply to exceptions classified as retryable. They avoid discarding valid data during an outage, but an unclassified permanent bug can block progress indefinitely. Production needs alerts and an operator decision after prolonged failure, not blind retries without ownership. For long retry delays I would evaluate container-pausing backoff; adding `@RetryableTopic` directly is not a supported solution for a batch listener. [Spring Kafka describes the relevant backoff and batch restrictions](https://docs.spring.io/spring-kafka/reference/kafka/annotation-error-handling.html).
 
 ### 10. How are failed DLQ messages recovered later?
 
@@ -135,67 +135,63 @@ The query sorts by `occurred_at DESC, event_id DESC`, backed by a matching [inde
 
 `eventId` identifies a particular event and drives deduplication. `orderId` groups several status updates for one order and supplies the typed Kafka key. `schemaVersion` identifies the event contract; the codec currently accepts only version 1. The event is a status notification, not an investment instruction containing an instrument, amount or settlement calculation.
 
-### 22. What timestamp contract prevents persistence overflow?
-
-The shared codec accepts ISO-8601 instants from `0001-01-01T00:00:00Z` through `9999-12-31T23:59:59.999999Z`, inclusive, evaluated in UTC. Typed requests outside the range return 400 before publication; raw/direct Kafka events fail consumer validation and reach the DLQ. The maximum is the last supported microsecond so database rounding cannot cross into year 10000. This replaces JDBC arithmetic checks in the persistence service with an explicit input contract. `Instant` remains the internal type; SQLSTATE 22008 handling remains defensive, and unrelated database errors still retry.
-
-### 23. How would you evolve the schema and database?
+### 22. How would you evolve the schema and database?
 
 I would distinguish compatible additive fields from breaking event changes, define unknown-field handling, and add explicit version conversion where needed. For a deployed database, existing Flyway migrations must remain immutable and changes need new migrations. The current V1 was simplified during this unreleased exercise; that is not a production upgrade strategy. Schema Registry or Avro could be justified by multiple independently deployed producers, but the task does not require them.
 
 ## 6. Security and deployment
 
-### 24. How do Basic and JWT differ here?
+### 23. How do Basic and JWT differ here?
 
 Basic is the default local mode, with one configured in-memory user and BCrypt password matching. Its role is named `READER`, but the rules only require authentication, so that user can publish too. The `jwt` profile excludes the Basic beans and requires bearer authentication with read/write scopes. The shipped Kubernetes manifest selects `jwt` explicitly; there is no automatic inference that an environment is production.
 
-### 25. Why validate issuer, audience and scope separately?
+### 24. Why validate issuer, audience and scope separately?
 
 Issuer identifies the trusted token issuer; the signature proves authenticity using its trusted keys. Audience checks that the token was issued for this API, rather than another API using the same issuer. Scope decides whether the caller can read or publish. This is still coarse authorization: no rule limits a caller to one customer's or partner's rows, because this demo models an internal event API.
 
-### 26. What happens when signing keys rotate or the provider is unavailable?
+### 25. What happens when signing keys rotate or the provider is unavailable?
 
 The decoder trusts the configured public JWK endpoint, RS256, issuer and audience, and requires an expiration claim with timestamp validation. New key IDs can trigger a key refresh; cached usable keys can validate tokens during an outage until cache/key conditions require refresh. Unavailable required keys fail authentication, with explicit 401 handling. This is local JWT validation, not immediate token revocation or introspection. Never promise that an identity-provider outage is invisible indefinitely.
 
-### 27. Is disabling CSRF justified because the app is stateless?
+### 26. Is disabling CSRF justified because the app is stateless?
 
 Statelessness alone is not enough. A bearer token explicitly supplied in an Authorization header differs from credentials automatically attached by a browser. Browser-managed Basic credentials can still create CSRF exposure, so the Basic mode should remain a local demonstration unless its browser threat model and protections are addressed. Public Swagger documentation does not grant public API access; Try it out still requires credentials. [Spring Security explicitly discusses Basic authentication in stateless CSRF scenarios](https://docs.spring.io/spring-security/reference/features/exploits/csrf.html).
 
-### 28. What do readiness and liveness actually prove?
+### 27. What do readiness and liveness actually prove?
 
 Liveness is process/application availability and does not depend on PostgreSQL. Readiness includes the database, but currently does not verify Kafka connectivity, listener assignment or consumer progress. Kubernetes readiness affects Service traffic; it does not automatically stop the Kafka listener. Whether Kafka should affect HTTP readiness is a product decision because stored-event reads can remain useful during a Kafka outage. External outages should not trigger mass liveness restarts. [Spring Boot documents these probe distinctions](https://docs.spring.io/spring-boot/reference/actuator/endpoints.html).
 
-### 29. How would you scale the consumer safely?
+### 28. How would you scale the consumer safely?
 
 With three source partitions, at most three consumers in the same group can actively consume those partitions. Two replicas with concurrency one provide two consumers; raising concurrency can help only within the partition limit and database capacity. Bound processing time, database waits, retries and recovery work so polling remains healthy; `max.poll.interval.ms` is distinct from heartbeats. Start with a budget such as batch size × slow-record processing time, then measure the real tail latency and rebalance behavior. [Kafka documents the poll interval and record limits](https://kafka.apache.org/42/configuration/consumer-configs/).
 
-### 30. Who creates the topics, and what should configuration validate?
+### 29. Who creates the topics, and what should configuration validate?
 
 Spring Boot supplies KafkaAdmin, and [KafkaTopicConfiguration](../src/main/java/com/example/fundorders/config/KafkaTopicConfiguration.java) supplies source/DLQ declarations. Local Compose enables creation; Kubernetes disables application administration and expects pre-provisioned topics. Disabling app topic creation does not disable broker-side automatic creation. DLQ publication preserves the source partition, so the destination needs at least as many partitions. Equal source/DLQ names are currently allowed and should be rejected; externally managed topic layouts are not validated at startup.
 
 ## 7. Tests, evidence and project scope
 
-### 31. What do your tests prove, and what do they not prove?
+### 30. What do your tests prove, and what do they not prove?
 
 Unit/MVC tests cover validation, producer behavior, failure classification, API behavior and authorization. Integration tests cover real HTTP, Kafka and PostgreSQL, controlled batches, DLQ recovery and real signed JWTs. Mocked JWT request helpers test authorization rules, while the separate cryptographic and HTTP tests exercise real token validation. The suite does not establish performance capacity, production broker failover, a real database outage, crash recovery or concurrent duplicate insertion by itself.
 
-### 32. What additional test would you choose first?
+### 31. What additional test would you choose first?
 
-I would choose based on a concrete risk: for example, concurrent inserts of the same event ID to reinforce the deduplication contract, or a controlled database outage showing offsets remain pending and recovery resumes. A multiple-partition failure test would strengthen confidence beyond the current single-partition batch scenario. I would avoid copying the implementation into assertions or restoring every removed timestamp integration permutation just to raise test counts.
+I would choose based on a concrete risk: for example, concurrent inserts of the same event ID to reinforce the deduplication contract, or a controlled database outage showing offsets remain pending and recovery resumes. A multiple-partition failure test would strengthen confidence beyond the current single-partition batch scenario. I would avoid copying the implementation into assertions or adding permutations just to raise test counts.
 
-### 33. Is 96% line coverage enough, and where is the published report?
+### 32. Is 96% line coverage enough, and where is the published report?
 
 Coverage tells me which code executed; it does not prove correct outcomes or concurrency behavior. The baseline run has lower branch coverage than line coverage, so I would inspect uncovered decisions and risks instead of targeting a percentage alone. `verify` generates current HTML/XML under `target/site/jacoco/`; the committed report is a historical snapshot. Refreshing that delivered artifact is a concrete improvement because the task asks for a generated coverage report, not just a reporting plugin. No JaCoCo minimum threshold is currently enforced.
 
-### 34. Why repeat container declarations in integration classes?
+### 33. Why repeat container declarations in integration classes?
 
 The tests favor clear class-level Kafka/PostgreSQL lifetimes and isolation. Shared fixtures can reduce duplication and startup time, but they must align container lifetime with Spring context caching and avoid shared topic/database state leaking between tests. I would only centralize this when the lifetime contract remains obvious and the gain is measured. A generic base class is not automatically a correctness improvement.
 
-### 35. What makes this relevant to investment-fund trading?
+### 34. What makes this relevant to investment-fund trading?
 
 It models receiving order-status updates from a trading partner, preserving event history and handling unreliable delivery. `REJECTED` is an expected business result, not a technical processing failure. It does not execute trades, calculate tax, validate settlement or enforce an order-state machine. I would ask domain experts about transition rules, partner sequencing, event identity, reconciliation and audit requirements before adding those capabilities.
 
-### 36. What would you improve with another day, and what would you leave out?
+### 35. What would you improve with another day, and what would you leave out?
 
 First I would refresh the submitted coverage artifact, close the configuration gaps, and collect a small benchmark plus a slow-consumer result. For a real deployment I would agree on monitoring, retry escalation, request limits, Kafka security and replay ownership. I would not add a tax engine, microservices, an automated DLQ replay platform, event sourcing or distributed transactions merely to make the exercise look larger. An outbox becomes relevant if request acceptance also needs a durable database write, not simply because Kafka is present.
 
