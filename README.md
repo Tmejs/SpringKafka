@@ -19,6 +19,10 @@ The sample credentials in `.env.example` are for local use only. Change both pas
 
 For a guided interview presentation and runnable curl scenarios, see [the demo guide](docs/demo.md) and run `./scripts/demo.sh --help`.
 
+## Authentication
+
+Local runs use HTTP Basic authentication configured with `APP_BASIC_AUTH_USERNAME` and `APP_BASIC_AUTH_PASSWORD`. To enable JWT, set `SPRING_PROFILES_ACTIVE=jwt` and configure `JWT_ISSUER_URI`, `JWT_AUDIENCE` and `JWT_JWK_SET_URI`; this disables Basic authentication. JWT API access requires `fund-orders.read` for reads and `fund-orders.write` for publication; see [JWT setup](docs/jwt-authentication.md).
+
 ## Swagger UI
 
 Available at [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html).
