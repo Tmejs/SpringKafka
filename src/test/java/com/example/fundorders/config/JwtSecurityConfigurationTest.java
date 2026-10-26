@@ -74,13 +74,6 @@ class JwtSecurityConfigurationTest {
         when(publisher.publishRaw(any())).thenReturn(new PublishReceipt("events", 0, 1, "key"));
     }
 
-    static Stream<Arguments> endpoints() {
-        return Stream.of(Arguments.of("GET", API, "fund-orders.read", 200),
-                Arguments.of("GET", API + "/" + ID, "fund-orders.read", 200),
-                Arguments.of("POST", API, "fund-orders.write", 202),
-                Arguments.of("POST", API + "/raw", "fund-orders.write", 202));
-    }
-
     private MockHttpServletRequestBuilder endpoint(String method, String path) {
         var request = request(HttpMethod.valueOf(method), path);
         if (method.equals("POST")) {
@@ -104,6 +97,13 @@ class JwtSecurityConfigurationTest {
         assertThat(context.getBeansOfType(BasicCredentialsProperties.class)).isEmpty();
         assertThat(context.getBeansOfType(UserDetailsService.class)).isEmpty();
         assertThat(context.getBeansOfType(PasswordEncoder.class)).isEmpty();
+    }
+
+    static Stream<Arguments> endpoints() {
+        return Stream.of(Arguments.of("GET", API, "fund-orders.read", 200),
+                Arguments.of("GET", API + "/" + ID, "fund-orders.read", 200),
+                Arguments.of("POST", API, "fund-orders.write", 202),
+                Arguments.of("POST", API + "/raw", "fund-orders.write", 202));
     }
 
     @ParameterizedTest @MethodSource("endpoints")
