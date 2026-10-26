@@ -20,7 +20,8 @@ public class FundOrderBatchListener {
         this.service = service;
     }
 
-    @KafkaListener(topics = "${app.kafka.topic}", containerFactory = "kafkaBatchListenerContainerFactory")
+    @KafkaListener(topics = "${app.kafka.topic}", groupId = "${spring.kafka.consumer.group-id}",
+            containerFactory = "kafkaBatchListenerContainerFactory")
     public void onMessages(List<ConsumerRecord<String, String>> records) {
         for (var record : records) {
             try {
