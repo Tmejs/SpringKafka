@@ -70,4 +70,4 @@ components:
         occurredAt:
           type: string
           format: date-time
-          description: Parsed as a Java Instant without a custom date range. PostgreSQL datetime overflow sends the event to the DLQ. Stored timestamps have microsecond precision.
+          description: Parsed as a Java Instant. Unrepresentable JDBC timestamps and PostgreSQL datetime overflow send the event to the DLQ. Stored timestamps have microsecond precision.
