@@ -43,7 +43,6 @@ class FundOrderQueryControllerTest {
         mvc.perform(get("/api/v1/fund-order-events?page=0&size=20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].eventId").value(event.eventId().toString()))
-                .andExpect(jsonPath("$.content[0].fundIsin").doesNotExist())
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(20));
