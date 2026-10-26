@@ -29,6 +29,10 @@ Removed handwritten docs/api/openapi.yaml. User-staged scripts/validate-contract
 
 checkpoint_12_review:PASS after correcting and re-reviewing both Important findings. No remaining Critical/Important findings. Reviewer inspected source and generated document without builds or modifications.
 
+## Merge resumed on 2026-10-26
+
+User explicitly authorized merging and including unstaged edits. The only edit removed an obsolete fundIsin assertion from FundOrderQueryControllerTest. Preserved separately as6c10efa, focused test passed, and independent reviewer confirmed no Critical/Important findings. Main was restored clean only after exact patch preservation. The complete branch cleanverify was rerun:52unit/18integration tests, zero failures/errors/skips; regenerated OpenAPI schema/reference validation passed again. The previously executed Docker image package build also passed.
+
 ## Release procedure
 
 Push checkpoint and compare local/tracking/remote SHAs; merge --no-ff into clean synchronized main; rerun full gate and generated-schema validation; push main and compare SHAs. Rebuild/recreate only the app service in the existing local Compose stack and verify authenticated Swagger/docs runtime access. Preserve checkpoint branch. No hosted CI added.
