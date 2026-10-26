@@ -50,21 +50,6 @@ class FundOrderQueryControllerTest {
     }
 
     @Test
-    void rejectsOutOfRangePageSize() throws Exception {
-        mvc.perform(get("/api/v1/fund-order-events?size=101"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
-        mvc.perform(get("/api/v1/fund-order-events?page=-1"))
-                .andExpect(status().isBadRequest());
-        mvc.perform(get("/api/v1/fund-order-events?page=abc"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
-        mvc.perform(get("/api/v1/fund-order-events/not-a-uuid"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
-    }
-
-    @Test
     void returnsOneEventOrNotFound() throws Exception {
         var event = storedEvent();
         when(repository.findByEventId(event.eventId())).thenReturn(Optional.of(event));

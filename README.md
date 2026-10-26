@@ -17,8 +17,6 @@ curl -fsS http://localhost:8080/actuator/health/readiness
 
 The app loads settings from `.env`; `.env.example` contains only the required local credentials. Other settings default to `application.yml` and can be overridden in `.env`. The sample credentials are for local use only. Change both passwords before sharing the stack. Compose exposes the app on `localhost:8080`, Kafka on `localhost:9092`, and Kafka UI on `localhost:8081`; PostgreSQL stays on the Compose network. The app creates the source and DLQ topics with three partitions each and Flyway creates the database table. To stop the stack, run `docker compose down`. `docker compose down -v` also removes PostgreSQL data.
 
-For a guided interview presentation and runnable curl scenarios, see [the demo guide](docs/demo.md) and run `./scripts/demo.sh --help`.
-
 ## Authentication
 
 Local runs use HTTP Basic authentication configured with `APP_BASIC_AUTH_USERNAME` and `APP_BASIC_AUTH_PASSWORD`. To enable JWT, set `SPRING_PROFILES_ACTIVE=jwt` and configure `JWT_ISSUER_URI`, `JWT_AUDIENCE` and `JWT_JWK_SET_URI`; this disables Basic authentication. JWT API access requires `fund-orders.read` for reads and `fund-orders.write` for publication; see [JWT setup](docs/jwt-authentication.md).
