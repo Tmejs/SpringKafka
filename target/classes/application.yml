@@ -1,0 +1,57 @@
+app:
+  security:
+    username: ${APP_BASIC_AUTH_USERNAME:}
+    password: ${APP_BASIC_AUTH_PASSWORD:}
+  kafka:
+    topic: ${APP_KAFKA_TOPIC:fund-order-events}
+    dlq-topic: ${APP_KAFKA_DLQ_TOPIC:fund-order-events.DLQ}
+    send-timeout: ${APP_KAFKA_SEND_TIMEOUT:5s}
+    dlq-send-timeout: ${APP_KAFKA_DLQ_SEND_TIMEOUT:10s}
+    retry-delay: ${APP_KAFKA_RETRY_DELAY:1s}
+    concurrency: ${APP_KAFKA_CONCURRENCY:1}
+    partitions: ${APP_KAFKA_PARTITIONS:3}
+    replication-factor: ${APP_KAFKA_REPLICATION_FACTOR:1}
+spring:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    admin:
+      auto-create: ${APP_KAFKA_ADMIN_AUTO_CREATE:true}
+    consumer:
+      group-id: ${APP_KAFKA_GROUP_ID:fund-order-events-processor}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        enable.auto.commit: false
+        max.poll.records: ${APP_KAFKA_MAX_POLL_RECORDS:100}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        max.block.ms: ${APP_KAFKA_PRODUCER_MAX_BLOCK_MS:3000}
+        request.timeout.ms: ${APP_KAFKA_PRODUCER_REQUEST_TIMEOUT_MS:3000}
+        delivery.timeout.ms: ${APP_KAFKA_PRODUCER_DELIVERY_TIMEOUT_MS:5000}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+
+springdoc:
+  paths-to-match: /api/v1/**
+  override-with-generic-response: false
+  api-docs:
+    version: OPENAPI_3_0
+  writer-with-default-pretty-printer: true
+  writer-with-order-by-keys: true

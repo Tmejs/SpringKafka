@@ -1,0 +1,11 @@
+/Users/matrzad/Documents/work/Nordea_Kafka/src/test/java/com/example/fundorders/FundOrderFlowIT.java
+/Users/matrzad/Documents/work/Nordea_Kafka/src/test/java/com/example/fundorders/config/JwtSecurityConfigurationTest.java
+/Users/matrzad/Documents/work/Nordea_Kafka/src/test/java/com/example/fundorders/config/KafkaBatchConfigurationTest.java
+/Users/matrzad/Documents/work/Nordea_Kafka/src/test/java/com/example/fundorders/config/SecurityConfigurationTest.java
+/Users/matrzad/Documents/work/Nordea_Kafka/src/test/java/com/example/fundorders/controller/EventPublishControllerIT.java
+/Users/matrzad/Documents/work/Nordea_Kafka/src/test/java/com/example/fundorders/controller/FundOrderQueryControllerTest.java
+/Users/matrzad/Documents/work/Nordea_Kafka/src/test/java/com/example/fundorders/kafka/FundOrderConsumerIT.java
+/Users/matrzad/Documents/work/Nordea_Kafka/src/test/java/com/example/fundorders/repository/ProcessedEventRepositoryIT.java
+/Users/matrzad/Documents/work/Nordea_Kafka/src/test/java/com/example/fundorders/service/EventPublisherTest.java
+/Users/matrzad/Documents/work/Nordea_Kafka/src/test/java/com/example/fundorders/service/FundOrderEventCodecTest.java
+/Users/matrzad/Documents/work/Nordea_Kafka/src/test/java/com/example/fundorders/support/MessagingIntegrationTestSupport.java

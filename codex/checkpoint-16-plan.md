@@ -1,3 +1,0 @@
-# Checkpoint 16: shorten the main README
-
-Keep only the title/introduction, Run locally, Swagger UI, Kafka browser UI, Try the two publication paths, and Test and coverage. Preserve existing introduction/local setup/test sections exactly; reduce UI sections to their local URLs and publication examples to typed POST, raw POST and asynchronous GET. Remove all other sections. Verify preserved sections, headings, local links and shell syntax; run the full local gate, obtain independent review, record evidence and complete the checkpoint push/no-ff merge workflow. Add the user-requested reviewer-guide link in the introduction for requirement verification. No runtime changes.
