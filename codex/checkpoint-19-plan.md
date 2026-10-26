@@ -1,0 +1,3 @@
+# Checkpoint 19: recruiter analysis and interview study document
+
+Read actual runtime/configuration/tests and current report evidence, compare with task requirements, identify concrete improvement candidates without implementing them, and create docs/interview-study-guide.md with prioritized findings and example interview answers linked to source. Verify nuanced Kafka/security claims against primary documentation. Keep README and runtime code unchanged. Validate local references, source facts and external references; request independent document review; record evidence and follow checkpoint push/no-ff merge workflow. This is documentation only, so runtime tests are not repeated absent a concrete reason.
