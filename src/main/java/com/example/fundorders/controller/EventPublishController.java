@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @ApiResponses({
         @ApiResponse(responseCode = "400", description = "Invalid request",
                 content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiError.class))),
-        @ApiResponse(responseCode = "401", description = "Basic authentication required", content = @Content),
+        @ApiResponse(responseCode = "401", description = "Authentication required", content = @Content),
         @ApiResponse(responseCode = "503", description = "Kafka did not acknowledge publication",
                 content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiError.class)))
 })

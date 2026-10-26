@@ -9,7 +9,7 @@
 | 2 minutes | Typed publication, receipt, then GET | HTTP 202 means Kafka acknowledged publication. The read model is updated asynchronously. `eventId` identifies a delivery; `orderId` groups order updates under the same Kafka key. `REJECTED` is valid business data. |
 | 2 minutes | Typed invalid status, then malformed raw text and DLQ | Typed validation rejects with 400 before publication. Raw text gets 202; the consumer identifies the permanent defect and publishes the original message to the DLQ. |
 | 2 minutes | Controlled batch integration tests and coverage | Show actual multi-record delivery, valid–invalid–valid recovery, offset progression, failed DLQ publication and extreme timestamp protection. |
-| 1–3 minutes | Decisions and production considerations | At-least-once delivery, first-write-wins deduplication, per-record database transactions, infrastructure retry behavior, Basic-to-JWT extension point, and topic ownership. |
+| 1–3 minutes | Decisions and production considerations | At-least-once delivery, first-write-wins deduplication, per-record database transactions, infrastructure retry behavior, profile-selected JWT authentication and scopes, and topic ownership. |
 
 Open the README architecture diagram, this guide, and the generated coverage report before the call. Pre-build images and run the tests beforehand. Use individual script commands during the presentation; `all` is useful for rehearsal.
 
@@ -173,3 +173,18 @@ npx --yes @asyncapi/cli@5.0.7 validate docs/api/asyncapi.yaml
 ```
 
 Optional metadata recommendations are distinct from document-validity errors. The old static-contract validator script has been removed.
+
+## Demonstrate JWT against a configured deployment
+
+Local Compose continues to use Basic by default. To select JWT, follow [JWT authentication](jwt-authentication.md) and obtain an access token from your identity provider. For all script scenarios, that token needs both `fund-orders.read` and `fund-orders.write`:
+
+```bash
+export AUTH_MODE=jwt
+export ACCESS_TOKEN='<access token from your identity provider>'
+export BASE_URL='https://your-deployment.example'
+./scripts/demo.sh raw-valid
+./scripts/demo.sh all
+unset ACCESS_TOKEN
+```
+
+The script uses the bearer token for both publication and polling; no Basic credentials are needed in this mode. `health` and `auth` still exercise anonymous access. Never commit tokens. Production Kubernetes disables Swagger; when enabled in JWT mode, documentation endpoints require bearer authentication too. The local Basic UI remains the interactive browser demonstration.
