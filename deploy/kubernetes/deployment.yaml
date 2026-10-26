@@ -40,16 +40,27 @@ spec:
                 secretKeyRef:
                   name: fund-orders-secrets
                   key: datasourcePassword
-            - name: APP_BASIC_AUTH_USERNAME
+            - name: SPRING_PROFILES_ACTIVE
+              value: jwt
+            - name: JWT_ISSUER_URI
               valueFrom:
-                secretKeyRef:
-                  name: fund-orders-secrets
-                  key: basicUsername
-            - name: APP_BASIC_AUTH_PASSWORD
+                configMapKeyRef:
+                  name: fund-orders-config
+                  key: jwtIssuerUri
+            - name: JWT_AUDIENCE
               valueFrom:
-                secretKeyRef:
-                  name: fund-orders-secrets
-                  key: basicPassword
+                configMapKeyRef:
+                  name: fund-orders-config
+                  key: jwtAudience
+            - name: JWT_JWK_SET_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: fund-orders-config
+                  key: jwtJwkSetUri
+            - name: SPRINGDOC_API_DOCS_ENABLED
+              value: "false"
+            - name: SPRINGDOC_SWAGGER_UI_ENABLED
+              value: "false"
             - name: APP_KAFKA_TOPIC
               value: fund-order-events
             - name: APP_KAFKA_DLQ_TOPIC

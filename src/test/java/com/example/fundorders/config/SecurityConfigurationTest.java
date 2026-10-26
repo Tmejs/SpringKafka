@@ -1,5 +1,6 @@
 package com.example.fundorders.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -15,14 +16,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(FundOrderQueryController.class)
-@Import(SecurityConfiguration.class)
+@Import({SecurityConfiguration.class, JwtSecurityConfiguration.class})
 @ImportAutoConfiguration(ServletWebSecurityAutoConfiguration.class)
 @TestPropertySource(properties = {
         "app.security.username=analyst",
@@ -31,6 +35,9 @@ import org.springframework.test.web.servlet.MockMvc;
 class SecurityConfigurationTest {
     @Autowired
     MockMvc mvc;
+
+    @Autowired
+    ApplicationContext context;
 
     @MockitoBean
     ProcessedEventRepository repository;
@@ -47,6 +54,15 @@ class SecurityConfigurationTest {
             request.addHeader("Authorization", "Basic YW5hbHlzdDpsb2NhbC10ZXN0LXNlY3JldA==");
             return request;
         })).andExpect(status().isOk());
+    }
+
+    @Test
+    void defaultProfileSelectsOnlyBasicAndRejectsBearer() throws Exception {
+        assertThat(context.getBeansOfType(SecurityFilterChain.class)).hasSize(1);
+        assertThat(context.getBeansOfType(BasicCredentialsProperties.class)).hasSize(1);
+        assertThat(context.getBeansOfType(JwtDecoder.class)).isEmpty();
+        mvc.perform(get("/api/v1/fund-order-events").header("Authorization", "Bearer unused-token"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

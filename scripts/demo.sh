@@ -6,7 +6,8 @@ usage() {
     cat <<'HELP'
 Usage: scripts/demo.sh [all|health|auth|publish|raw-valid|read EVENT_ID|list|invalid-typed|invalid-raw|duplicate]
 
-Requires curl and Python 3. Export APP_BASIC_AUTH_USERNAME and APP_BASIC_AUTH_PASSWORD.
+Requires curl and Python 3. Basic: export APP_BASIC_AUTH_USERNAME and APP_BASIC_AUTH_PASSWORD.
+JWT: set AUTH_MODE=jwt and ACCESS_TOKEN (all needs both read/write scopes).
 BASE_URL defaults to http://localhost:8080. EVENT_ID and ORDER_ID optionally fix publication IDs.
 all runs health, authentication, typed/raw publication, reads, validation and duplicate examples.
 invalid-raw only confirms Kafka publication; inspect the DLQ separately (see docs/demo.md).
@@ -27,9 +28,21 @@ command -v curl >/dev/null
 command -v python3 >/dev/null
 BASE_URL=${BASE_URL:-http://localhost:8080}
 BASE_URL=${BASE_URL%/}
-if [[ "$command" != health ]]; then
-    : "${APP_BASIC_AUTH_USERNAME:?Export APP_BASIC_AUTH_USERNAME (see docs/demo.md)}"
-    : "${APP_BASIC_AUTH_PASSWORD:?Export APP_BASIC_AUTH_PASSWORD (see docs/demo.md)}"
+AUTH_MODE=${AUTH_MODE:-basic}
+auth_options=()
+case "$AUTH_MODE" in
+    basic|jwt) ;;
+    *) echo 'AUTH_MODE must be basic or jwt' >&2; exit 2 ;;
+esac
+if [[ "$command" != health && "$command" != auth ]]; then
+    if [[ "$AUTH_MODE" == jwt ]]; then
+        : "${ACCESS_TOKEN:?Export ACCESS_TOKEN for JWT requests}"
+        auth_options=(--header "Authorization: Bearer $ACCESS_TOKEN")
+    else
+        : "${APP_BASIC_AUTH_USERNAME:?Export APP_BASIC_AUTH_USERNAME (see docs/demo.md)}"
+        : "${APP_BASIC_AUTH_PASSWORD:?Export APP_BASIC_AUTH_PASSWORD (see docs/demo.md)}"
+        auth_options=(--user "$APP_BASIC_AUTH_USERNAME:$APP_BASIC_AUTH_PASSWORD")
+    fi
 fi
 work_dir=$(mktemp -d)
 trap 'rm -rf "$work_dir"' EXIT
@@ -54,7 +67,7 @@ request() {
     local -a options=(--silent --show-error --connect-timeout 3 --max-time 15
         --request "$method" --output "$response_file" --write-out '%{http_code}')
     if [[ "$auth" == authenticated ]]; then
-        options+=(--user "$APP_BASIC_AUTH_USERNAME:$APP_BASIC_AUTH_PASSWORD")
+        options+=("${auth_options[@]}")
     fi
     if [[ "$method" == POST ]]; then
         options+=(--header "Content-Type: $content_type" --data-binary "$body")
@@ -86,7 +99,7 @@ wait_for_event() {
     local id=$1 code deadline=$((SECONDS + 30))
     while (( SECONDS < deadline )); do
         code=$(curl --silent --show-error --connect-timeout 3 --max-time 5 \
-            --user "$APP_BASIC_AUTH_USERNAME:$APP_BASIC_AUTH_PASSWORD" \
+            "${auth_options[@]}" \
             --output "$response_file" --write-out '%{http_code}' "$BASE_URL$api/$id")
         case "$code" in
             200) printf '\nConsumed event %s -> HTTP 200\n' "$id"; show_response; return ;;

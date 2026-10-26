@@ -1,0 +1,6 @@
+app:
+  security:
+    jwt:
+      issuer-uri: ${JWT_ISSUER_URI:}
+      audience: ${JWT_AUDIENCE:}
+      jwk-set-uri: ${JWT_JWK_SET_URI:}

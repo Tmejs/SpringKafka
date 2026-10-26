@@ -21,7 +21,7 @@ For a guided interview presentation and runnable curl scenarios, see [the demo g
 
 Open [Swagger UI](http://localhost:8080/swagger-ui/index.html) using the same Basic credentials as the API. The browser may ask for credentials when loading the page; Swagger's **Authorize** button supplies credentials for **Try it out** requests. The generated [OpenAPI endpoint](http://localhost:8080/v3/api-docs), UI assets, and Swagger configuration are authenticated too.
 
-The document is generated from the running controllers and models, with annotations for response codes, error schemas and validation details. `./mvnw clean verify` checks the generated contract in the real HTTP/Kafka/PostgreSQL integration tests and writes `target/openapi/openapi.json`. Generated files stay under `target/`; no handwritten OpenAPI file is maintained. The server URL is relative so exported documents are portable across environments.
+The document is generated from the running controllers and models, with annotations for response codes, error schemas and validation details. `./mvnw clean verify` checks the generated contract in the real HTTP/Kafka/PostgreSQL integration tests and writes `target/openapi/openapi.json` (Basic) and `target/openapi/openapi-jwt.json` (JWT). Generated files stay under `target/`; no handwritten OpenAPI file is maintained. The server URL is relative so exported documents are portable across environments.
 
 A package-only build (`./mvnw package`, including the Docker image build with `-DskipTests`) stops before the export integration test. Those applications still generate and serve OpenAPI and Swagger UI at runtime. The generated document covers the business APIs under `/api/v1/**`; health probes are described below. To disable documentation in a deployment, set `SPRINGDOC_API_DOCS_ENABLED=false` and `SPRINGDOC_SWAGGER_UI_ENABLED=false`.
 
@@ -62,7 +62,7 @@ docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
   --from-beginning --max-messages 1
 ```
 
-A typed request with an unknown status gets `400` and never enters Kafka. Sending the same invalid JSON as raw text gets `202` first, then the consumer routes it to the DLQ. Raw **valid** JSON is processed and stored. Both POST endpoints require Basic authentication. The application has no custom raw message size limit; Kafka producer and broker limits still apply.
+A typed request with an unknown status gets `400` and never enters Kafka. Sending the same invalid JSON as raw text gets `202` first, then the consumer routes it to the DLQ. Raw **valid** JSON is processed and stored. Both POST endpoints require authentication; the JWT profile additionally requires `fund-orders.write`. The application has no custom raw message size limit; Kafka producer and broker limits still apply.
 
 ## What the consumer does
 
@@ -117,11 +117,11 @@ Tests mirror these packages; the HTTP end-to-end test sits at the application ro
 
 Configure request-body size limits at the ingress or reverse proxy for both publishing endpoints in production. This project has no custom body-size filter, and the Kubernetes example does not include ingress configuration.
 
-All broker, topic, group, concurrency, retry, send timeout, and maximum poll settings are in [application.yml](src/main/resources/application.yml), with environment overrides shown in [.env.example](.env.example). Basic credentials must be supplied through `APP_BASIC_AUTH_USERNAME` and `APP_BASIC_AUTH_PASSWORD`; the app rejects blank values at startup. Use HTTPS at an ingress outside local development.
+All broker, topic, group, concurrency, retry, send timeout, and maximum poll settings are in [application.yml](src/main/resources/application.yml), with environment overrides shown in [.env.example](.env.example). The default profile uses Basic authentication. Supply `APP_BASIC_AUTH_USERNAME` and `APP_BASIC_AUTH_PASSWORD`; blank values prevent startup in this mode. Use HTTPS at an ingress outside local development.
 
-[SecurityConfiguration.java](src/main/java/com/example/fundorders/config/SecurityConfiguration.java) is the documented authentication extension point. To adopt JWT, replace its HTTP Basic and in-memory user beans with Spring Security OAuth2 resource-server configuration, validate issuer/audience and authorities, and keep the controller contracts unchanged. JWT is not implemented in this submission.
+For deployment, select `SPRING_PROFILES_ACTIVE=jwt` and supply `JWT_ISSUER_URI`, `JWT_AUDIENCE`, and `JWT_JWK_SET_URI`. This selects bearer authentication and disables Basic authentication and its user configuration. GET/HEAD requests require `fund-orders.read`; both POST endpoints require `fund-orders.write`. The shipped Kubernetes manifest selects this profile and disables Swagger documentation. See [JWT authentication](docs/jwt-authentication.md) for trust configuration, scopes, examples and operational limits.
 
-The [Kubernetes example](deploy/kubernetes/deployment.yaml) includes startup, readiness, and liveness probes. Liveness checks the process; readiness also checks PostgreSQL. Supply the referenced `fund-orders-config` ConfigMap and `fund-orders-secrets` Secret, use a built image, and provision Kafka topics with matching source/DLQ partition counts. The example sets `APP_KAFKA_ADMIN_AUTO_CREATE=false` so the deployment does not create or resize topics. Configure broker-side automatic topic creation separately; this application setting does not disable it. Configure TLS and broker credentials for nonlocal Kafka.
+The [Kubernetes example](deploy/kubernetes/deployment.yaml) includes startup, readiness, and liveness probes. Liveness checks the process; readiness also checks PostgreSQL. Supply the referenced `fund-orders-config` ConfigMap (including `jwtIssuerUri`, `jwtAudience`, and `jwtJwkSetUri`) and database credentials in `fund-orders-secrets`, use a built image, and provision Kafka topics with matching source/DLQ partition counts. The example sets `APP_KAFKA_ADMIN_AUTO_CREATE=false` so the deployment does not create or resize topics. Configure broker-side automatic topic creation separately; this application setting does not disable it. Configure TLS and broker credentials for nonlocal Kafka.
 
 ### Kafka topic ownership
 
@@ -142,7 +142,7 @@ With Java 21 and Docker running:
 ./mvnw verify
 ```
 
-The test suite includes unit tests for conversion, producer behavior, batch failure identification, security, pagination, and database idempotency. Testcontainers integration tests use real Kafka and PostgreSQL to exercise HTTP publish → Kafka batch consume → authenticated read or DLQ. A controlled batch integration test preloads three records before listener startup and asserts the actual multi-record delivery, database results, DLQ metadata, and broker-committed offsets. A second scenario injects a failed DLQ send, verifies that the invalid record and following record remain pending, then allows a real DLQ publication and verifies recovery. This fault injection tests the publication boundary; it does not simulate a broker outage. Maven Failsafe runs `*IT` classes during `verify`. JaCoCo produces `target/site/jacoco/index.html` and `target/site/jacoco/jacoco.xml`; a generated snapshot is included at [codex/reports/coverage/index.html](codex/reports/coverage/index.html). No hosted CI is required for the local verification gate.
+JWT tests use real RSA-signed tokens and a local JWK server to check signatures, issuer, audience, expiry, algorithm restrictions, key rotation, outages, scope enforcement and absence of a Basic fallback. Both authentication profiles have HTTP integration coverage. The test suite also includes unit tests for conversion, producer behavior, batch failure identification, security, pagination, and database idempotency. Testcontainers integration tests use real Kafka and PostgreSQL to exercise HTTP publish → Kafka batch consume → authenticated read or DLQ. A controlled batch integration test preloads three records before listener startup and asserts the actual multi-record delivery, database results, DLQ metadata, and broker-committed offsets. A second scenario injects a failed DLQ send, verifies that the invalid record and following record remain pending, then allows a real DLQ publication and verifies recovery. This fault injection tests the publication boundary; it does not simulate a broker outage. Maven Failsafe runs `*IT` classes during `verify`. JaCoCo produces `target/site/jacoco/index.html` and `target/site/jacoco/jacoco.xml`; a generated snapshot is included at [codex/reports/coverage/index.html](codex/reports/coverage/index.html). No hosted CI is required for the local verification gate.
 
 ## Interview discussion points
 
@@ -151,4 +151,4 @@ The test suite includes unit tests for conversion, producer behavior, batch fail
 - Explain why `REJECTED` is business data, not a processing exception.
 - Show how `eventId` prevents duplicate rows and why this is at-least-once processing.
 - Describe how a database outage or DLQ send failure preserves the failed source record.
-- Discuss partition ordering, schema evolution, JWT replacement, and production topic/secret management.
+- Discuss partition ordering, schema evolution, JWT trust and scopes, and production topic/secret management.
