@@ -8,7 +8,7 @@
 | 2 minutes | Compose, readiness and authenticated GET | Kafka and PostgreSQL are real dependencies. Health is public; business APIs require Basic authentication. |
 | 2 minutes | Typed publication, receipt, then GET | HTTP 202 means Kafka acknowledged publication. The read model is updated asynchronously. `eventId` identifies a delivery; `orderId` groups order updates under the same Kafka key. `REJECTED` is valid business data. |
 | 2 minutes | Typed invalid status, then malformed raw text and DLQ | Typed validation rejects with 400 before publication. Raw text gets 202; the consumer identifies the permanent defect and publishes the original message to the DLQ. |
-| 2 minutes | Controlled batch integration tests and coverage | Show actual multi-record delivery, valid–invalid–valid recovery, offset progression, failed DLQ publication and extreme timestamp protection. |
+| 2 minutes | Controlled batch integration tests and coverage | Show actual multi-record delivery, valid–invalid–valid recovery, offset progression, failed DLQ publication. |
 | 1–3 minutes | Decisions and production considerations | At-least-once delivery, first-write-wins deduplication, per-record database transactions, infrastructure retry behavior, profile-selected JWT authentication and scopes, and topic ownership. |
 
 Open the README architecture diagram, this guide, and the generated coverage report before the call. Pre-build images and run the tests beforehand. Use individual script commands during the presentation; `all` is useful for rehearsal.
@@ -138,7 +138,6 @@ Show these tests in the editor:
 
 - `KafkaBatchProcessingIT`: listener is stopped, several records are preloaded into one partition, then consumption starts. The test asserts an actual multi-record batch, successful rows, the exact DLQ record and committed offsets.
 - Its failed-DLQ-send case: the source failure and batch tail remain pending until DLQ publication succeeds.
-- Its timestamp cases: values PostgreSQL cannot store reach the DLQ and later records continue.
 - `FundOrderFlowIT`: real HTTP → Kafka → PostgreSQL → authenticated GET, raw failures and replay behavior.
 
 A burst of REST requests does not guarantee a single Kafka poll batch. Actual batch size depends on timing and available records. Explain that this implementation batches Kafka delivery and offset handling while using one database transaction per event. Bulk inserts are a separate throughput optimization with different failure semantics.

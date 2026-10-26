@@ -1,11 +1,13 @@
 package com.example.fundorders.service;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import com.example.fundorders.exception.InvalidEventException;
@@ -23,6 +25,23 @@ import org.springframework.dao.DataIntegrityViolationException;
 import tools.jackson.databind.json.JsonMapper;
 
 class ProcessedEventServiceTest {
+    @Test
+    void timestampOutsideJdbcRepresentationIsPermanentBeforeRepositoryAccess() {
+        var repository = mock(ProcessedEventRepository.class);
+        var service = new ProcessedEventService(repository, new FundOrderEventCodec(
+                JsonMapper.builder().findAndAddModules().build(),
+                Validation.buildDefaultValidatorFactory().getValidator()));
+        for (var timestamp : List.of(Instant.MAX, Instant.ofEpochMilli(Long.MIN_VALUE))) {
+            var event = new FundOrderStatusEvent(1, UUID.randomUUID(), UUID.randomUUID(),
+                    "AGENCY_A", OrderStatus.ACCEPTED, timestamp);
+
+            assertThatThrownBy(() -> service.process(event)).as(timestamp.toString())
+                    .isInstanceOf(InvalidEventException.class)
+                    .hasCauseInstanceOf(ArithmeticException.class);
+        }
+        verifyNoInteractions(repository);
+    }
+
     @Test
     void postgresTimestampOverflowBecomesPermanentEventFailure() {
         var failure = new DataIntegrityViolationException("timestamp rejected",

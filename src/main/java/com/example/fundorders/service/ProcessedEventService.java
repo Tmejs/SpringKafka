@@ -24,6 +24,13 @@ public class ProcessedEventService {
     public void process(FundOrderStatusEvent event) {
         codec.validate(event);
         try {
+            // Hibernate binds Instant through JDBC's millisecond-based timestamp representation.
+            event.occurredAt().toEpochMilli();
+            Math.multiplyExact(event.occurredAt().getEpochSecond(), 1000L);
+        } catch (ArithmeticException exception) {
+            throw new InvalidEventException("Event timestamp cannot be stored", exception);
+        }
+        try {
             repository.insertIfAbsent(event);
         } catch (DataIntegrityViolationException exception) {
             for (Throwable cause = exception; cause != null; cause = cause.getCause()) {

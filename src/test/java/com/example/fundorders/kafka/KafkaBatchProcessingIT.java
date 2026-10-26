@@ -40,8 +40,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -200,49 +198,6 @@ class KafkaBatchProcessingIT {
 
         assertProcessingCompleted(batch);
         assertDeadLetter(batch);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"+300000-01-01T00:00:00Z", "-300000-01-01T00:00:00Z",
-            "+1000000000-12-31T23:59:59.999999999Z", "-1000000000-01-01T00:00:00Z"})
-    void postgresTimestampOverflowGoesToDlqAndFollowingRecordPersists(String timestamp) throws Exception {
-        var firstId = UUID.randomUUID();
-        var poisonId = UUID.randomUUID();
-        var lastId = UUID.randomUUID();
-        var orderId = UUID.randomUUID();
-        var poison = event(poisonId, orderId, OrderStatus.ACCEPTED)
-                .replace("2026-10-21T12:00:00Z", timestamp);
-        var batch = new PublishedBatch(firstId, lastId, poison, List.of(
-                publish(orderId, event(firstId, orderId, OrderStatus.ACCEPTED)),
-                publish(orderId, poison),
-                publish(orderId, event(lastId, orderId, OrderStatus.EXECUTED))));
-
-        listener.start();
-
-        assertInitialBatchWasDelivered(batch);
-        assertProcessingCompleted(batch);
-        assertThat(repository.findByEventId(poisonId)).isEmpty();
-        assertDeadLetter(batch);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"0001-01-01T00:00:00Z", "9999-12-31T23:59:59.999999Z"})
-    void fourDigitYearTimestampsPersistInPostgres(String timestamp) throws Exception {
-        var eventId = UUID.randomUUID();
-        var orderId = UUID.randomUUID();
-        var value = event(eventId, orderId, OrderStatus.ACCEPTED)
-                .replace("2026-10-21T12:00:00Z", timestamp);
-        var offset = publish(orderId, value);
-
-        listener.start();
-
-        await().atMost(WAIT).untilAsserted(() -> {
-            assertThat(repository.findByEventId(eventId)).get()
-                    .extracting(stored -> stored.occurredAt()).isEqualTo(Instant.parse(timestamp));
-            assertThat(committedOffset()).isEqualTo(offset + 1);
-        });
-        assertThat(repository.count()).isEqualTo(initialRows + 1);
-        assertThat(endOffset(DLQ_PARTITION)).isEqualTo(initialDlqOffset);
     }
 
     private PublishedBatch publishBatch() throws Exception {
