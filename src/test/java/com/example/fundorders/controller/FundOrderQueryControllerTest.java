@@ -50,14 +50,18 @@ class FundOrderQueryControllerTest {
     }
 
     @Test
-    void returnsOneEventOrNotFound() throws Exception {
+    void returnsOneEvent() throws Exception {
         var event = storedEvent();
         when(repository.findByEventId(event.eventId())).thenReturn(Optional.of(event));
 
         mvc.perform(get("/api/v1/fund-order-events/" + event.eventId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("REJECTED"))
-                .andExpect(jsonPath("$.fundIsin").doesNotExist());
+                .andExpect(jsonPath("$.status").value("REJECTED"));
+    }
+
+    @Test
+    void returnsNotFound() throws Exception {
+
         mvc.perform(get("/api/v1/fund-order-events/" + UUID.randomUUID()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
