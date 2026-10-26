@@ -2,7 +2,10 @@
 
 import java.util.List;
 
-<span class="fc" id="L5">public record EventPage(List&lt;ProcessedFundOrderEvent&gt; content, int page, int size,</span>
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(requiredProperties = {&quot;content&quot;, &quot;page&quot;, &quot;size&quot;, &quot;totalElements&quot;})
+<span class="fc" id="L8">public record EventPage(List&lt;ProcessedFundOrderEvent&gt; content, int page, int size,</span>
         long totalElements) {
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

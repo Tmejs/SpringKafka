@@ -20,16 +20,17 @@ public class FundOrderBatchListener {
 <span class="fc" id="L20">        this.service = service;</span>
 <span class="fc" id="L21">    }</span>
 
-    @KafkaListener(topics = &quot;${app.kafka.topic}&quot;, containerFactory = &quot;kafkaBatchListenerContainerFactory&quot;)
+    @KafkaListener(topics = &quot;${app.kafka.topic}&quot;, groupId = &quot;${spring.kafka.consumer.group-id}&quot;,
+            containerFactory = &quot;kafkaBatchListenerContainerFactory&quot;)
     public void onMessages(List&lt;ConsumerRecord&lt;String, String&gt;&gt; records) {
-<span class="fc bfc" id="L25" title="All 2 branches covered.">        for (var record : records) {</span>
+<span class="fc bfc" id="L26" title="All 2 branches covered.">        for (var record : records) {</span>
             try {
-<span class="fc" id="L27">                service.process(codec.decode(record.value()));</span>
-<span class="fc" id="L28">            } catch (Exception failure) {</span>
-<span class="fc" id="L29">                throw new BatchListenerFailedException(&quot;Fund order event processing failed&quot;,</span>
+<span class="fc" id="L28">                service.process(codec.decode(record.value()));</span>
+<span class="fc" id="L29">            } catch (Exception failure) {</span>
+<span class="fc" id="L30">                throw new BatchListenerFailedException(&quot;Fund order event processing failed&quot;,</span>
                         failure, record);
-<span class="fc" id="L31">            }</span>
-<span class="fc" id="L32">        }</span>
-<span class="fc" id="L33">    }</span>
+<span class="fc" id="L32">            }</span>
+<span class="fc" id="L33">        }</span>
+<span class="fc" id="L34">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

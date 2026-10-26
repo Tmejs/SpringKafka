@@ -3,12 +3,14 @@
 import java.time.Instant;
 import java.util.UUID;
 
-<span class="fc" id="L6">public record ProcessedFundOrderEvent(</span>
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(requiredProperties = {&quot;schemaVersion&quot;, &quot;eventId&quot;, &quot;orderId&quot;, &quot;partnerCode&quot;, &quot;status&quot;, &quot;occurredAt&quot;, &quot;processedAt&quot;})
+<span class="fc" id="L9">public record ProcessedFundOrderEvent(</span>
         int schemaVersion,
         UUID eventId,
         UUID orderId,
         String partnerCode,
-        String fundIsin,
         OrderStatus status,
         Instant occurredAt,
         Instant processedAt) {

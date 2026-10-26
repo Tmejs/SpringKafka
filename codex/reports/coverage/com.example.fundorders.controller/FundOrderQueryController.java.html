@@ -2,12 +2,21 @@
 
 import java.util.UUID;
 
+import com.example.fundorders.exception.ApiExceptionHandler.ApiError;
 import com.example.fundorders.model.EventPage;
 import com.example.fundorders.model.ProcessedFundOrderEvent;
 import com.example.fundorders.repository.ProcessedEventRepository;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,28 +26,46 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping(&quot;/api/v1/fund-order-events&quot;)
+@Tag(name = &quot;Fund order events&quot;)
+@ApiResponses({
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid request&quot;,
+                content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Authentication required&quot;, content = @Content)
+})
 public class FundOrderQueryController {
     private final ProcessedEventRepository repository;
 
-<span class="fc" id="L23">    public FundOrderQueryController(ProcessedEventRepository repository) {</span>
-<span class="fc" id="L24">        this.repository = repository;</span>
-<span class="fc" id="L25">    }</span>
+<span class="fc" id="L38">    public FundOrderQueryController(ProcessedEventRepository repository) {</span>
+<span class="fc" id="L39">        this.repository = repository;</span>
+<span class="fc" id="L40">    }</span>
 
+    @Operation(operationId = &quot;listConsumedEvents&quot;, summary = &quot;List consumed events&quot;,
+            description = &quot;Ordered by occurredAt descending, then eventId descending.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Consumed event page&quot;,
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = EventPage.class)))
     @GetMapping
-    public EventPage list(@RequestParam(defaultValue = &quot;0&quot;) int page,
-            @RequestParam(defaultValue = &quot;20&quot;) int size) {
-<span class="pc bpc" id="L30" title="1 of 6 branches missed.">        if (page &lt; 0 || size &lt; 1 || size &gt; 100) {</span>
-<span class="fc" id="L31">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,</span>
-                    &quot;page must be nonnegative and size must be between 1 and 100&quot;);
+    public EventPage list(
+            @Parameter(schema = @Schema(type = &quot;integer&quot;, format = &quot;int32&quot;, minimum = &quot;0&quot;, defaultValue = &quot;0&quot;)) @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @Parameter(schema = @Schema(type = &quot;integer&quot;, format = &quot;int32&quot;, minimum = &quot;1&quot;, maximum = &quot;100&quot;, defaultValue = &quot;20&quot;)) @RequestParam(defaultValue = &quot;20&quot;) int size) {
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">        if (page &lt; 0) {</span>
+<span class="nc" id="L51">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,</span>
+                    &quot;page must be nonnegative&quot;);
         }
-<span class="fc" id="L34">        var result = repository.findPage(PageRequest.of(page, size));</span>
-<span class="fc" id="L35">        return new EventPage(result.getContent(), page, size, result.getTotalElements());</span>
+<span class="fc" id="L54">        var result = repository.findPage(PageRequest.of(page, size));</span>
+<span class="fc" id="L55">        return new EventPage(result.getContent(), page, size, result.getTotalElements());</span>
     }
 
+    @Operation(operationId = &quot;getConsumedEvent&quot;, summary = &quot;Get one consumed event&quot;)
+    @ApiResponses({
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Persisted event&quot;,
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProcessedFundOrderEvent.class))),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Event does not exist&quot;,
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiError.class)))
+    })
     @GetMapping(&quot;/{eventId}&quot;)
     public ProcessedFundOrderEvent get(@PathVariable UUID eventId) {
-<span class="fc" id="L40">        return repository.findByEventId(eventId)</span>
-<span class="fc" id="L41">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND,</span>
+<span class="fc" id="L67">        return repository.findByEventId(eventId)</span>
+<span class="fc" id="L68">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND,</span>
                         &quot;Event was not found&quot;));
     }
 }

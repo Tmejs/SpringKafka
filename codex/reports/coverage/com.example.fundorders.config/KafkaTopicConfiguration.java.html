@@ -12,13 +12,17 @@ import org.springframework.kafka.config.TopicBuilder;
     @Bean
     public NewTopic sourceTopic(KafkaTopicProperties properties) {
 <span class="fc" id="L14">        return TopicBuilder.name(properties.topic())</span>
-<span class="fc" id="L15">                .partitions(properties.partitions()).replicas(properties.replicationFactor()).build();</span>
+<span class="fc" id="L15">                .partitions(properties.partitions())</span>
+<span class="fc" id="L16">                .replicas(properties.replicationFactor())</span>
+<span class="fc" id="L17">                .build();</span>
     }
 
     @Bean
     public NewTopic deadLetterTopic(KafkaTopicProperties properties) {
-<span class="fc" id="L20">        return TopicBuilder.name(properties.dlqTopic())</span>
-<span class="fc" id="L21">                .partitions(properties.partitions()).replicas(properties.replicationFactor()).build();</span>
+<span class="fc" id="L22">        return TopicBuilder.name(properties.dlqTopic())</span>
+<span class="fc" id="L23">                .partitions(properties.partitions())</span>
+<span class="fc" id="L24">                .replicas(properties.replicationFactor())</span>
+<span class="fc" id="L25">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

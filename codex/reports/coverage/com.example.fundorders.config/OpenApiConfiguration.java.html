@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenApiConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fund-orders</a> &gt; <a href="index.source.html" class="el_package">com.example.fundorders.config</a> &gt; <span class="el_source">OpenApiConfiguration.java</span></div><h1>OpenApiConfiguration.java</h1><pre class="source lang-java linenums">package com.example.fundorders.config;
+
+import java.util.List;
+
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
+import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
+
+@Configuration
+<span class="fc" id="L20">public class OpenApiConfiguration {</span>
+    @Bean
+    OpenAPI openApi(Environment environment) {
+<span class="fc" id="L23">        var jwt = environment.acceptsProfiles(Profiles.of(&quot;jwt&quot;));</span>
+<span class="pc bpc" id="L24" title="1 of 2 branches missed.">        var name = jwt ? &quot;bearerAuth&quot; : &quot;basicAuth&quot;;</span>
+<span class="pc bpc" id="L25" title="1 of 2 branches missed.">        var scheme = new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme(jwt ? &quot;bearer&quot; : &quot;basic&quot;);</span>
+<span class="pc bpc" id="L26" title="1 of 2 branches missed.">        if (jwt) { scheme.bearerFormat(&quot;JWT&quot;); }</span>
+<span class="fc" id="L27">        return new OpenAPI()</span>
+<span class="fc" id="L28">                .info(new Info().title(&quot;Fund Order Event API&quot;).version(&quot;0.1.0&quot;)</span>
+<span class="fc" id="L29">                        .description(&quot;Fictional investment-fund order status events. Publication and consumption are asynchronous.&quot;))</span>
+<span class="fc" id="L30">                .servers(List.of(new Server().url(&quot;/&quot;).description(&quot;Current server&quot;)))</span>
+<span class="fc" id="L31">                .components(new Components().addSecuritySchemes(name, scheme))</span>
+<span class="fc" id="L32">                .addSecurityItem(new SecurityRequirement().addList(name));</span>
+    }
+
+    @Bean
+    @Profile(&quot;jwt&quot;)
+    OpenApiCustomizer jwtScopeDocumentation() {
+<span class="nc" id="L38">        return document -&gt; document.getPaths().values().forEach(path -&gt;</span>
+<span class="nc" id="L39">                path.readOperationsMap().forEach((method, operation) -&gt; {</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">                    var scope = method.name().equals(&quot;POST&quot;) ? &quot;fund-orders.write&quot; : &quot;fund-orders.read&quot;;</span>
+<span class="nc" id="L41">                    operation.addExtension(&quot;x-required-scope&quot;, scope);</span>
+<span class="nc" id="L42">                    operation.getResponses().addApiResponse(&quot;403&quot;,</span>
+<span class="nc" id="L43">                            new ApiResponse().description(&quot;Required scope: &quot; + scope));</span>
+<span class="nc" id="L44">                    operation.getResponses().get(&quot;401&quot;).setDescription(&quot;Bearer authentication required&quot;);</span>
+<span class="nc" id="L45">                }));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

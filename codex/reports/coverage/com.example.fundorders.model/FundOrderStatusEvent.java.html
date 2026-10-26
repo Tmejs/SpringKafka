@@ -3,16 +3,16 @@
 import java.time.Instant;
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
-<span class="fc" id="L10">public record FundOrderStatusEvent(</span>
-        int schemaVersion,
+<span class="fc" id="L11">public record FundOrderStatusEvent(</span>
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {&quot;1&quot;}) int schemaVersion,
         @NotNull UUID eventId,
         @NotNull UUID orderId,
-        @NotBlank @Pattern(regexp = &quot;[A-Z0-9_]{2,32}&quot;) String partnerCode,
-        @NotBlank @Pattern(regexp = &quot;[A-Z]{2}[A-Z0-9]{10}&quot;) String fundIsin,
+        @NotBlank String partnerCode,
         @NotNull OrderStatus status,
         @NotNull Instant occurredAt) {
 }

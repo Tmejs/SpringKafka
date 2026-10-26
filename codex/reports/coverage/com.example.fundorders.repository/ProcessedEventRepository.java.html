@@ -21,39 +21,33 @@ public interface ProcessedEventRepository extends JpaRepository&lt;ProcessedEven
     @Modifying
     @Query(value = &quot;&quot;&quot;
             INSERT INTO processed_fund_order_events
-                (event_id, schema_version, order_id, partner_code, fund_isin,
-                 status, occurred_at, payload_hash)
-            VALUES (:eventId, :schemaVersion, :orderId, :partnerCode, :fundIsin,
-                    :status, :occurredAt, :payloadHash)
+                (event_id, schema_version, order_id, partner_code, status, occurred_at)
+            VALUES (:eventId, :schemaVersion, :orderId, :partnerCode, :status, :occurredAt)
             ON CONFLICT (event_id) DO NOTHING
             &quot;&quot;&quot;, nativeQuery = true)
     int insertIfAbsent(@Param(&quot;eventId&quot;) UUID eventId,
             @Param(&quot;schemaVersion&quot;) int schemaVersion,
             @Param(&quot;orderId&quot;) UUID orderId,
             @Param(&quot;partnerCode&quot;) String partnerCode,
-            @Param(&quot;fundIsin&quot;) String fundIsin,
             @Param(&quot;status&quot;) String status,
-            @Param(&quot;occurredAt&quot;) Instant occurredAt,
-            @Param(&quot;payloadHash&quot;) String payloadHash);
+            @Param(&quot;occurredAt&quot;) Instant occurredAt);
 
-    default boolean insertIfAbsent(FundOrderStatusEvent event, String payloadHash) {
-<span class="fc bfc" id="L40" title="All 2 branches covered.">        return insertIfAbsent(event.eventId(), event.schemaVersion(), event.orderId(),</span>
-<span class="fc" id="L41">                event.partnerCode(), event.fundIsin(), event.status().name(),</span>
-<span class="fc" id="L42">                event.occurredAt(), payloadHash) == 1;</span>
-    }
-
-    default Optional&lt;String&gt; findPayloadHash(UUID eventId) {
-<span class="fc" id="L46">        return findById(eventId).map(ProcessedEventEntity::payloadHash);</span>
+    default boolean insertIfAbsent(FundOrderStatusEvent event) {
+<span class="fc bfc" id="L36" title="All 2 branches covered.">        return insertIfAbsent(event.eventId(), event.schemaVersion(), event.orderId(),</span>
+<span class="fc" id="L37">                event.partnerCode(), event.status().name(),</span>
+<span class="fc" id="L38">                event.occurredAt()) == 1;</span>
     }
 
     default Optional&lt;ProcessedFundOrderEvent&gt; findByEventId(UUID eventId) {
-<span class="fc" id="L50">        return findById(eventId).map(ProcessedEventEntity::toModel);</span>
+<span class="fc" id="L42">        return findById(eventId)</span>
+<span class="fc" id="L43">                .map(ProcessedEventEntity::toModel);</span>
     }
 
     default Page&lt;ProcessedFundOrderEvent&gt; findPage(Pageable pageable) {
-<span class="fc" id="L54">        var order = Sort.by(Sort.Order.desc(&quot;occurredAt&quot;), Sort.Order.desc(&quot;eventId&quot;));</span>
-<span class="fc" id="L55">        var orderedPage = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), order);</span>
-<span class="fc" id="L56">        return findAll(orderedPage).map(ProcessedEventEntity::toModel);</span>
+<span class="fc" id="L47">        var order = Sort.by(Sort.Order.desc(&quot;occurredAt&quot;), Sort.Order.desc(&quot;eventId&quot;));</span>
+<span class="fc" id="L48">        var orderedPage = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), order);</span>
+<span class="fc" id="L49">        return findAll(orderedPage)</span>
+<span class="fc" id="L50">                .map(ProcessedEventEntity::toModel);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

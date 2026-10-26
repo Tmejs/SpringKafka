@@ -9,8 +9,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = &quot;processed_fund_order_events&quot;)
@@ -28,9 +26,6 @@ public class ProcessedEventEntity {
     @Column(name = &quot;partner_code&quot;, nullable = false, length = 32)
     private String partnerCode;
 
-    @Column(name = &quot;fund_isin&quot;, nullable = false, length = 12)
-    private String fundIsin;
-
     @Enumerated(EnumType.STRING)
     @Column(name = &quot;status&quot;, nullable = false, length = 16)
     private OrderStatus status;
@@ -41,20 +36,12 @@ public class ProcessedEventEntity {
     @Column(name = &quot;processed_at&quot;, nullable = false)
     private Instant processedAt;
 
-    @JdbcTypeCode(SqlTypes.CHAR)
-    @Column(name = &quot;payload_hash&quot;, nullable = false, length = 64)
-    private String payloadHash;
-
-<span class="fc" id="L48">    protected ProcessedEventEntity() {</span>
-<span class="fc" id="L49">    }</span>
-
-    public String payloadHash() {
-<span class="fc" id="L52">        return payloadHash;</span>
-    }
+<span class="fc" id="L39">    protected ProcessedEventEntity() {</span>
+<span class="fc" id="L40">    }</span>
 
     public ProcessedFundOrderEvent toModel() {
-<span class="fc" id="L56">        return new ProcessedFundOrderEvent(schemaVersion, eventId, orderId, partnerCode,</span>
-                fundIsin, status, occurredAt, processedAt);
+<span class="fc" id="L43">        return new ProcessedFundOrderEvent(schemaVersion, eventId, orderId, partnerCode,</span>
+                status, occurredAt, processedAt);
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

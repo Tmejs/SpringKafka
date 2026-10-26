@@ -3,6 +3,7 @@
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -15,34 +16,37 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@Profile(&quot;!jwt&quot;)
 @EnableConfigurationProperties(BasicCredentialsProperties.class)
-<span class="fc" id="L19">public class SecurityConfiguration {</span>
+<span class="fc" id="L21">public class SecurityConfiguration {</span>
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-<span class="fc" id="L22">        return http</span>
-<span class="fc" id="L23">                .csrf(AbstractHttpConfigurer::disable)</span>
-<span class="fc" id="L24">                .sessionManagement(session -&gt; session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
-<span class="fc" id="L25">                .authorizeHttpRequests(requests -&gt; requests</span>
-<span class="fc" id="L26">                        .requestMatchers(&quot;/actuator/health&quot;, &quot;/actuator/health/liveness&quot;,</span>
-<span class="fc" id="L27">                                &quot;/actuator/health/readiness&quot;).permitAll()</span>
-<span class="fc" id="L28">                        .anyRequest().authenticated())</span>
-<span class="fc" id="L29">                .httpBasic(Customizer.withDefaults())</span>
-<span class="fc" id="L30">                .build();</span>
+<span class="fc" id="L24">        return http</span>
+<span class="fc" id="L25">                .csrf(AbstractHttpConfigurer::disable)</span>
+<span class="fc" id="L26">                .sessionManagement(session -&gt; session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="fc" id="L27">                .authorizeHttpRequests(requests -&gt; requests</span>
+<span class="fc" id="L28">                        .requestMatchers(&quot;/actuator/health&quot;, &quot;/actuator/health/liveness&quot;,</span>
+<span class="fc" id="L29">                                &quot;/actuator/health/readiness&quot;).permitAll()</span>
+<span class="fc" id="L30">                        .requestMatchers(&quot;/swagger-ui.html&quot;, &quot;/swagger-ui/**&quot;, &quot;/v3/api-docs&quot;,</span>
+<span class="fc" id="L31">                                &quot;/v3/api-docs/**&quot;, &quot;/v3/api-docs.yaml&quot;).permitAll()</span>
+<span class="fc" id="L32">                        .anyRequest().authenticated())</span>
+<span class="fc" id="L33">                .httpBasic(Customizer.withDefaults())</span>
+<span class="fc" id="L34">                .build();</span>
     }
 
     @Bean
     PasswordEncoder passwordEncoder() {
-<span class="fc" id="L35">        return new BCryptPasswordEncoder();</span>
+<span class="fc" id="L39">        return new BCryptPasswordEncoder();</span>
     }
 
     @Bean
     UserDetailsService userDetailsService(BasicCredentialsProperties credentials,
             PasswordEncoder encoder) {
-<span class="fc" id="L41">        var user = User.withUsername(credentials.username())</span>
-<span class="fc" id="L42">                .password(encoder.encode(credentials.password()))</span>
-<span class="fc" id="L43">                .roles(&quot;READER&quot;)</span>
-<span class="fc" id="L44">                .build();</span>
-<span class="fc" id="L45">        return new InMemoryUserDetailsManager(user);</span>
+<span class="fc" id="L45">        var user = User.withUsername(credentials.username())</span>
+<span class="fc" id="L46">                .password(encoder.encode(credentials.password()))</span>
+<span class="fc" id="L47">                .roles(&quot;READER&quot;)</span>
+<span class="fc" id="L48">                .build();</span>
+<span class="fc" id="L49">        return new InMemoryUserDetailsManager(user);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

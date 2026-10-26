@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtSecurityConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fund-orders</a> &gt; <a href="index.source.html" class="el_package">com.example.fundorders.config</a> &gt; <span class="el_source">JwtSecurityConfiguration.java</span></div><h1>JwtSecurityConfiguration.java</h1><pre class="source lang-java linenums">package com.example.fundorders.config;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.ObjectPostProcessor;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationEntryPointFailureHandler;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
+import org.springframework.web.client.RestTemplate;
+
+@Configuration
+@Profile(&quot;jwt&quot;)
+@EnableConfigurationProperties(JwtSecurityProperties.class)
+<span class="fc" id="L33">public class JwtSecurityConfiguration {</span>
+    @Bean
+    SecurityFilterChain jwtSecurityFilterChain(HttpSecurity http) throws Exception {
+<span class="fc" id="L36">        return http</span>
+<span class="fc" id="L37">                .csrf(AbstractHttpConfigurer::disable)</span>
+<span class="fc" id="L38">                .sessionManagement(session -&gt; session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="fc" id="L39">                .authorizeHttpRequests(requests -&gt; requests</span>
+<span class="fc" id="L40">                        .requestMatchers(&quot;/actuator/health&quot;, &quot;/actuator/health/liveness&quot;,</span>
+<span class="fc" id="L41">                                &quot;/actuator/health/readiness&quot;).permitAll()</span>
+<span class="fc" id="L42">                        .requestMatchers(&quot;/swagger-ui.html&quot;, &quot;/swagger-ui/**&quot;, &quot;/v3/api-docs&quot;,</span>
+<span class="fc" id="L43">                                &quot;/v3/api-docs/**&quot;, &quot;/v3/api-docs.yaml&quot;).permitAll()</span>
+<span class="fc" id="L44">                        .requestMatchers(HttpMethod.GET, &quot;/api/v1/fund-order-events&quot;,</span>
+<span class="fc" id="L45">                                &quot;/api/v1/fund-order-events/**&quot;).hasAuthority(&quot;SCOPE_fund-orders.read&quot;)</span>
+<span class="fc" id="L46">                        .requestMatchers(HttpMethod.HEAD, &quot;/api/v1/fund-order-events&quot;,</span>
+<span class="fc" id="L47">                                &quot;/api/v1/fund-order-events/**&quot;).hasAuthority(&quot;SCOPE_fund-orders.read&quot;)</span>
+<span class="fc" id="L48">                        .requestMatchers(HttpMethod.POST, &quot;/api/v1/fund-order-events&quot;,</span>
+<span class="fc" id="L49">                                &quot;/api/v1/fund-order-events/raw&quot;).hasAuthority(&quot;SCOPE_fund-orders.write&quot;)</span>
+<span class="fc" id="L50">                        .anyRequest().denyAll())</span>
+<span class="fc" id="L51">                .oauth2ResourceServer(server -&gt; server.jwt(Customizer.withDefaults())</span>
+<span class="fc" id="L52">                        .withObjectPostProcessor(new ObjectPostProcessor&lt;BearerTokenAuthenticationFilter&gt;() {</span>
+                            @Override
+                            public &lt;O extends BearerTokenAuthenticationFilter&gt; O postProcess(O filter) {
+<span class="fc" id="L55">                                var handler = new AuthenticationEntryPointFailureHandler(</span>
+                                        new BearerTokenAuthenticationEntryPoint());
+<span class="fc" id="L57">                                handler.setRethrowAuthenticationServiceException(false);</span>
+<span class="fc" id="L58">                                filter.setAuthenticationFailureHandler(handler);</span>
+<span class="fc" id="L59">                                return filter;</span>
+                            }
+                        }))
+<span class="fc" id="L62">                .build();</span>
+    }
+
+    @Bean
+    JwtDecoder jwtDecoder(JwtSecurityProperties properties) {
+<span class="fc" id="L67">        var requests = new SimpleClientHttpRequestFactory();</span>
+<span class="fc" id="L68">        requests.setConnectTimeout(Duration.ofSeconds(3));</span>
+<span class="fc" id="L69">        requests.setReadTimeout(Duration.ofSeconds(3));</span>
+<span class="fc" id="L70">        var decoder = NimbusJwtDecoder.withJwkSetUri(properties.jwkSetUri())</span>
+<span class="fc" id="L71">                .jwsAlgorithm(SignatureAlgorithm.RS256)</span>
+<span class="fc" id="L72">                .restOperations(new RestTemplate(requests))</span>
+<span class="fc" id="L73">                .build();</span>
+<span class="fc" id="L74">        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator&lt;&gt;(</span>
+<span class="fc" id="L75">                JwtValidators.createDefaultWithIssuer(properties.issuerUri()),</span>
+                new JwtClaimValidator&lt;List&lt;String&gt;&gt;(&quot;aud&quot;, audiences -&gt;
+<span class="nc bnc" id="L77" title="All 4 branches missed.">                        audiences != null &amp;&amp; audiences.contains(properties.audience())),</span>
+                // The default timestamp validator permits an absent exp claim.
+<span class="nc bnc" id="L79" title="All 2 branches missed.">                new JwtClaimValidator&lt;Instant&gt;(&quot;exp&quot;, expiry -&gt; expiry != null)));</span>
+<span class="fc" id="L80">        return decoder;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
