@@ -17,6 +17,14 @@ The sample credentials in `.env.example` are for local use only. Change both pas
 
 For a guided interview presentation and runnable curl scenarios, see [the demo guide](docs/demo.md) and run `./scripts/demo.sh --help`.
 
+## Swagger UI and generated OpenAPI
+
+Open [Swagger UI](http://localhost:8080/swagger-ui/index.html) using the same Basic credentials as the API. The browser may ask for credentials when loading the page; Swagger's **Authorize** button supplies credentials for **Try it out** requests. The generated [OpenAPI endpoint](http://localhost:8080/v3/api-docs), UI assets, and Swagger configuration are authenticated too.
+
+The document is generated from the running controllers and models, with annotations for response codes, error schemas and validation details. `./mvnw clean verify` checks the generated contract in the real HTTP/Kafka/PostgreSQL integration tests and writes `target/openapi/openapi.json`. Generated files stay under `target/`; no handwritten OpenAPI file is maintained. The server URL is relative so exported documents are portable across environments.
+
+A package-only build (`./mvnw package`, including the Docker image build with `-DskipTests`) stops before the export integration test. Those applications still generate and serve OpenAPI and Swagger UI at runtime. The generated document covers the business APIs under `/api/v1/**`; health probes are described below. To disable documentation in a deployment, set `SPRINGDOC_API_DOCS_ENABLED=false` and `SPRINGDOC_SWAGGER_UI_ENABLED=false`.
+
 ## Kafka browser UI
 
 Compose includes Kafbat UI at [http://localhost:8081](http://localhost:8081). To add it to an already running stack, run `docker compose up -d kafka-ui`. It connects to Kafka over the internal `kafka:19092` listener and is bound to localhost for local development.
@@ -124,7 +132,7 @@ Spring Boot supplies the `KafkaAdmin` bean using the shared `spring.kafka` conne
 - Both declarations share a partition count because DLQ publication preserves the source partition. Pre-provisioned DLQ topics must have at least as many partitions as the source; application declarations are not a startup validation of externally managed topics.
 - When application topic creation is enabled, KafkaAdmin can create missing topics and increase existing partition counts. It cannot decrease partitions or change an existing topic's replication factor; replica reassignment requires a separate administrative operation. Partition increases can change key-to-partition mapping and affect ordering.
 
-HTTP is documented in [OpenAPI](docs/api/openapi.yaml); Kafka topics, messages, and DLQ headers are documented in [AsyncAPI](docs/api/asyncapi.yaml). These are separate contracts because REST request validation and asynchronous consumer validation have different outcomes.
+HTTP is documented by the generated OpenAPI endpoint and build artifact described above; Kafka topics, messages, and DLQ headers are documented in [AsyncAPI](docs/api/asyncapi.yaml). These are separate contracts because REST request validation and asynchronous consumer validation have different outcomes.
 
 ## Test and coverage
 

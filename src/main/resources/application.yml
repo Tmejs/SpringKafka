@@ -47,3 +47,11 @@ management:
       group:
         readiness:
           include: readinessState,db
+
+springdoc:
+  paths-to-match: /api/v1/**
+  override-with-generic-response: false
+  api-docs:
+    version: OPENAPI_3_0
+  writer-with-default-pretty-printer: true
+  writer-with-order-by-keys: true
