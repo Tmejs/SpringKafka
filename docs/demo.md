@@ -60,18 +60,17 @@ To choose IDs yourself, export `EVENT_ID` and `ORDER_ID` as valid UUIDs. The inv
 
 ## Call the APIs from Swagger UI
 
-Open [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html). Log in with the Basic credentials from `.env` when the browser asks. Use **Authorize** in Swagger UI to set the same username/password for **Try it out**.
+Open [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html). The page opens without authentication. Use **Authorize** in Swagger UI to set the Basic username/password from `.env` for protected **Try it out** API requests. In the JWT profile, paste an access token instead; API read/write scopes still apply.
 
 The UI shows the current controller routes and models, including publication HTTP 202, validation/error responses, pagination and Basic authentication. Send a typed event with a fresh UUID, then retrieve that event. The raw endpoint accepts text; malformed input is rejected later by the consumer. The curl script remains useful for repeatable rehearsals.
 
-`./mvnw clean verify` exports the checked runtime document to `target/openapi/openapi.json`. For a running application, download it with credentials:
+`./mvnw clean verify` exports the checked runtime document to `target/openapi/openapi.json`. For a running application with documentation enabled, download it without credentials:
 
 ```bash
-curl -fsS -u "$APP_BASIC_AUTH_USERNAME:$APP_BASIC_AUTH_PASSWORD" \
-  http://localhost:8080/v3/api-docs -o /tmp/fund-orders-openapi.json
+curl -fsS http://localhost:8080/v3/api-docs -o /tmp/fund-orders-openapi.json
 ```
 
-The document, UI and UI assets require authentication. There is no checked-in static OpenAPI file. A package-only build or a build with integration tests skipped does not export the artifact; its running app still exposes the document.
+The document, UI and UI assets are public in both profiles; business APIs require authentication. There is no checked-in static OpenAPI file. A package-only build or a build with integration tests skipped does not export the artifact; its running app still exposes the document.
 
 ## Inspect Kafka in the browser
 
@@ -151,7 +150,7 @@ The complete `verify` lifecycle runs unit tests, Failsafe integration tests and 
 - A record may be stored before an offset commit fails; replay is therefore expected. The event ID primary key and `ON CONFLICT DO NOTHING` make storage idempotent.
 - A permanent message defect goes to the DLQ. Database outages and unexpected failures retain delayed retries; a failed DLQ send leaves the source record pending. Infinite retries require operational alerting and investigation.
 - DLQ replay is an operational process: inspect the error and source metadata, correct the cause, republish deliberately, and monitor recovery. No automatic DLQ replay is implemented.
-- Basic authentication is suitable for this local demonstration. `SecurityConfiguration` is the documented JWT resource-server extension point; JWT is not implemented.
+- Basic authentication is the local default; the `jwt` profile enables JWT authentication with separate read/write scopes. See [JWT authentication](jwt-authentication.md).
 - In production, provision topics through infrastructure tooling, configure replication/retention and TLS, manage secrets, enforce ingress body limits, and monitor consumer lag. The Kubernetes readiness check includes PostgreSQL; it does not establish Kafka connectivity.
 
 ## Stop
@@ -164,7 +163,7 @@ This stops the stack and retains PostgreSQL data. Use `down -v` only when you in
 
 ## API contract verification
 
-The Maven integration tests request `/v3/api-docs` from the real application, verify Basic authentication and Swagger resources, assert the business routes, request/response schemas and important constraints, then export `target/openapi/openapi.json`. Generate it with `./mvnw clean verify`; OpenAPI is not maintained as a separate YAML file.
+The Maven integration tests request `/v3/api-docs` from the real application, verify public Swagger resources and protected business APIs, assert the business routes, request/response schemas and important constraints, then export `target/openapi/openapi.json`. Generate it with `./mvnw clean verify`; OpenAPI is not maintained as a separate YAML file.
 
 `docs/api/asyncapi.yaml` remains the Kafka contract. It is independent of HTTP controller generation. Optional Node.js/npm tooling can validate it with the official AsyncAPI CLI:
 
@@ -187,4 +186,4 @@ export BASE_URL='https://your-deployment.example'
 unset ACCESS_TOKEN
 ```
 
-The script uses the bearer token for both publication and polling; no Basic credentials are needed in this mode. `health` and `auth` still exercise anonymous access. Never commit tokens. Production Kubernetes disables Swagger; when enabled in JWT mode, documentation endpoints require bearer authentication too. The local Basic UI remains the interactive browser demonstration.
+The script uses the bearer token for both publication and polling; no Basic credentials are needed in this mode. `health` and `auth` still exercise anonymous access. Never commit tokens. Production Kubernetes disables Swagger; when enabled in either profile, documentation endpoints are public. Use Swagger **Authorize** to authenticate business API requests.

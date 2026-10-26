@@ -27,7 +27,7 @@ Compose passes these environment variables through. Put the selected profile and
 | POST `/api/v1/fund-order-events` | `fund-orders.write` |
 | POST `/api/v1/fund-order-events/raw` | `fund-orders.write` |
 | Health, readiness and liveness | Anonymous access |
-| Swagger and OpenAPI, when enabled | Any valid authenticated bearer token |
+| Swagger and OpenAPI, when enabled | Anonymous access |
 
 Spring Security maps the standard `scope` or `scp` claim to `SCOPE_` authorities. Configure the identity provider to issue these scopes for this audience. Provider-specific role claims are not mapped. A read token cannot publish; a write token cannot read. Missing or invalid authentication returns 401; valid authentication without the required scope returns 403. Other routes are denied. Security failures use Spring Security's responses, not the controller error schema.
 
@@ -45,7 +45,7 @@ Validation is stateless and does not provide immediate revocation or introspecti
 
 The Kubernetes example selects `jwt`, reads `jwtIssuerUri`, `jwtAudience` and `jwtJwkSetUri` from `fund-orders-config`, and retains database secrets in `fund-orders-secrets`. Configure those resources before deployment. Swagger and OpenAPI are disabled there via Springdoc environment settings.
 
-When enabled, the generated JWT contract describes bearer authentication, required scopes using `x-required-scope`, and 403 responses. Documentation assets are themselves bearer protected. There is no browser OAuth login flow: use the Basic local UI for an interactive demo, or fetch the JWT contract using a bearer header. `./mvnw clean verify` exports both `target/openapi/openapi.json` and `target/openapi/openapi-jwt.json`.
+When enabled, the generated JWT contract describes bearer authentication, required scopes using `x-required-scope`, and 403 responses. Swagger UI, its assets, JSON/YAML OpenAPI and Swagger configuration are public when enabled in either profile. Use **Authorize** to paste an access token for protected **Try it out** requests; the required API scopes still apply. There is no browser OAuth login or token-acquisition flow. `./mvnw clean verify` exports both `target/openapi/openapi.json` and `target/openapi/openapi-jwt.json`.
 
 ```bash
 curl -i -H "Authorization: Bearer $ACCESS_TOKEN" \

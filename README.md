@@ -19,7 +19,7 @@ For a guided interview presentation and runnable curl scenarios, see [the demo g
 
 ## Swagger UI and generated OpenAPI
 
-Open [Swagger UI](http://localhost:8080/swagger-ui/index.html) using the same Basic credentials as the API. The browser may ask for credentials when loading the page; Swagger's **Authorize** button supplies credentials for **Try it out** requests. The generated [OpenAPI endpoint](http://localhost:8080/v3/api-docs), UI assets, and Swagger configuration are authenticated too.
+Open [Swagger UI](http://localhost:8080/swagger-ui/index.html) without authentication in either profile. The generated [OpenAPI endpoint](http://localhost:8080/v3/api-docs), YAML endpoint `/v3/api-docs.yaml`, UI assets and Swagger configuration are public when documentation is enabled. Use **Authorize** to supply Basic credentials locally or a bearer token in the JWT profile before calling protected business APIs with **Try it out**. JWT calls still require the appropriate read/write scope.
 
 The document is generated from the running controllers and models, with annotations for response codes, error schemas and validation details. `./mvnw clean verify` checks the generated contract in the real HTTP/Kafka/PostgreSQL integration tests and writes `target/openapi/openapi.json` (Basic) and `target/openapi/openapi-jwt.json` (JWT). Generated files stay under `target/`; no handwritten OpenAPI file is maintained. The server URL is relative so exported documents are portable across environments.
 

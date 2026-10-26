@@ -215,9 +215,13 @@ class JwtFundOrderFlowIT {
 
     @Test
     void jwtOpenApiDescribesBearerScopesAndExportsSeparateArtifact() throws Exception {
-        var token = "Bearer " + ISSUER.token("fund-orders.read");
-        assertThat(send("GET", "/v3/api-docs", null, null, null).statusCode()).isEqualTo(401);
-        var response = send("GET", "/v3/api-docs", null, null, token);
+        for (var path : List.of("/swagger-ui/index.html", "/swagger-ui/swagger-ui-bundle.js",
+                "/v3/api-docs", "/v3/api-docs/swagger-config", "/v3/api-docs.yaml")) {
+            assertThat(send("GET", path, null, null, null).statusCode()).as(path).isEqualTo(200);
+        }
+        assertThat(send("GET", "/swagger-ui.html", null, null, null).statusCode()).isEqualTo(302);
+        assertThat(send("GET", API, null, null, null).statusCode()).isEqualTo(401);
+        var response = send("GET", "/v3/api-docs", null, null, null);
         assertThat(response.statusCode()).isEqualTo(200);
         var document = JsonMapper.builder().build().readTree(response.body());
         assertThat(document.at("/security/0/bearerAuth").isArray()).isTrue();
@@ -232,7 +236,6 @@ class JwtFundOrderFlowIT {
                 }
             }
         }
-        assertThat(send("GET", "/swagger-ui/index.html", null, null, token).statusCode()).isEqualTo(200);
         var output = Path.of(System.getProperty("openapi.outputDirectory", "target/openapi"));
         Files.createDirectories(output);
         Files.writeString(output.resolve("openapi-jwt.json"), response.body(), StandardCharsets.UTF_8);

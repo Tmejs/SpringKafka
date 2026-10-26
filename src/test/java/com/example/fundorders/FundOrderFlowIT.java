@@ -71,19 +71,21 @@ class FundOrderFlowIT {
     private final HttpClient http = HttpClient.newHttpClient();
 
     @Test
-    void swaggerUiAndDocumentsRequireBasicAuthentication() throws Exception {
+    void swaggerUiAndDocumentsArePublicWhileBusinessApiRequiresBasic() throws Exception {
         for (var path : List.of("/swagger-ui/index.html", "/swagger-ui/swagger-ui-bundle.js", "/v3/api-docs",
-                "/v3/api-docs/swagger-config")) {
-            assertThat(send("GET", path, null, null, false).statusCode()).isEqualTo(401);
+                "/v3/api-docs/swagger-config", "/v3/api-docs.yaml")) {
+            assertThat(send("GET", path, null, null, false).statusCode()).isEqualTo(200);
             assertThat(send("GET", path, null, null, true).statusCode()).isEqualTo(200);
         }
-        assertThat(send("GET", "/swagger-ui/index.html", null, null, true).body())
+        assertThat(send("GET", "/swagger-ui/index.html", null, null, false).body())
                 .contains("Swagger UI");
+        assertThat(send("GET", "/swagger-ui.html", null, null, false).statusCode()).isEqualTo(302);
+        assertThat(send("GET", "/api/v1/fund-order-events", null, null, false).statusCode()).isEqualTo(401);
     }
 
     @Test
     void generatedOpenApiDescribesControllerContractAndExportsBuildArtifact() throws Exception {
-        var response = send("GET", "/v3/api-docs", null, null, true);
+        var response = send("GET", "/v3/api-docs", null, null, false);
         assertThat(response.statusCode()).isEqualTo(200);
         var document = JsonMapper.builder().build().readTree(response.body());
         assertThat(document.path("openapi").asString()).startsWith("3.");
