@@ -1,7 +1,6 @@
 package com.example.fundorders.controller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -11,7 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 
 import com.example.fundorders.exception.ApiExceptionHandler;
 import com.example.fundorders.exception.PublishFailedException;
@@ -53,10 +51,7 @@ class EventPublishControllerTest {
     }
 
     @Test
-    void typedExtendedTimestampIsAcceptedForConsumerPersistence() throws Exception {
-        when(publisher.publish(any(FundOrderStatusEvent.class)))
-                .thenReturn(new PublishReceipt("fund-orders", 0, 42, "order-key"));
-
+    void typedOutOfRangeTimestampIsRejectedBeforePublication() throws Exception {
         mvc.perform(post("/api/v1/fund-order-events")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -64,10 +59,9 @@ class EventPublishControllerTest {
                          "orderId":"72a11fa8-51ec-4496-9f63-6b1a94f78b73","partnerCode":"AGENCY_A",
                          "status":"ACCEPTED","occurredAt":"+300000-01-01T00:00:00Z"}
                         """))
-                .andExpect(status().isAccepted());
+                .andExpect(status().isBadRequest());
 
-        verify(publisher).publish(argThat(event ->
-                event.occurredAt().equals(Instant.parse("+300000-01-01T00:00:00Z"))));
+        verify(publisher, never()).publish(any(FundOrderStatusEvent.class));
     }
 
     @Test

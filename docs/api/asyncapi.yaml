@@ -70,4 +70,4 @@ components:
         occurredAt:
           type: string
           format: date-time
-          description: Parsed as a Java Instant. Unrepresentable JDBC timestamps and PostgreSQL datetime overflow send the event to the DLQ. Stored timestamps have microsecond precision.
+          description: ISO-8601 instant from 0001-01-01T00:00:00Z through 9999-12-31T23:59:59.999999Z, inclusive, evaluated in UTC. Out-of-range Kafka events go to the DLQ. Stored timestamps have microsecond precision.
