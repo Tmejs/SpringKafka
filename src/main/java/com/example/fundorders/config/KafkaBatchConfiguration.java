@@ -46,12 +46,6 @@ public class KafkaBatchConfiguration {
         var handler = new DefaultErrorHandler(recoverer,
                 new FixedBackOff(retryDelay.toMillis(), FixedBackOff.UNLIMITED_ATTEMPTS));
         handler.addNotRetryableExceptions(InvalidEventException.class);
-        handler.setRetryListeners((record, exception, attempt) -> {
-            if (attempt == 1 || attempt == 10 || attempt % 100 == 0) {
-                log.warn("Retrying Kafka record at {}-{} offset {} (attempt {})",
-                        record.topic(), record.partition(), record.offset(), attempt, exception);
-            }
-        });
         return handler;
     }
 
