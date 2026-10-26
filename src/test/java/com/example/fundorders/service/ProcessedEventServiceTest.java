@@ -26,7 +26,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 class ProcessedEventServiceTest {
     @Test
-    void timestampOutsideJdbcRepresentationIsPermanentBeforeRepositoryAccess() {
+    void timestampOutsideSupportedRangeIsRejectedBeforeRepositoryAccess() {
         var repository = mock(ProcessedEventRepository.class);
         var service = new ProcessedEventService(repository, new FundOrderEventCodec(
                 JsonMapper.builder().findAndAddModules().build(),
@@ -37,7 +37,7 @@ class ProcessedEventServiceTest {
 
             assertThatThrownBy(() -> service.process(event)).as(timestamp.toString())
                     .isInstanceOf(InvalidEventException.class)
-                    .hasCauseInstanceOf(ArithmeticException.class);
+                    .hasMessageContaining("occurredAt");
         }
         verifyNoInteractions(repository);
     }
@@ -81,7 +81,7 @@ class ProcessedEventServiceTest {
         return new FundOrderStatusEvent(1,
                 UUID.fromString("3c6fc787-e729-46c0-b199-8c8a737c2251"),
                 UUID.fromString("72a11fa8-51ec-4496-9f63-6b1a94f78b73"),
-                "AGENCY_A", OrderStatus.ACCEPTED, Instant.parse("+300000-01-01T00:00:00Z"));
+                "AGENCY_A", OrderStatus.ACCEPTED, Instant.parse("2026-10-21T12:00:00Z"));
     }
 
     @Test

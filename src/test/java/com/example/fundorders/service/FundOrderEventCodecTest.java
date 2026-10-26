@@ -70,14 +70,22 @@ class FundOrderEventCodecTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"0000-12-31T23:59:59.999999999Z",
-            "9999-12-31T23:59:59.999999001Z", "+10000-01-01T00:00:00Z",
-            "+300000-01-01T00:00:00Z", "-300000-01-01T00:00:00Z"})
-    void timestampRangeIsLeftToPersistence(String timestamp) {
+    @ValueSource(strings = {"0001-01-01T00:00:00Z", "9999-12-31T23:59:59.999999Z",
+            "2026-10-26T14:30:00+02:00", "2026-10-26T12:30:00.123456789Z"})
+    void supportedUtcTimestampRangeRoundTrips(String timestamp) {
         var event = codec.decode(VALID_JSON.replace("2026-10-21T12:00:00Z", timestamp));
 
         assertThat(event.occurredAt()).isEqualTo(Instant.parse(timestamp));
         assertThat(codec.decode(codec.encode(event))).isEqualTo(event);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0000-12-31T23:59:59.999999999Z", "+10000-01-01T00:00:00Z",
+            "9999-12-31T23:59:59.999999001Z", "+1000000000-12-31T23:59:59.999999999Z"})
+    void rejectsTimestampsOutsideSupportedUtcRange(String timestamp) {
+        assertThatThrownBy(() -> codec.decode(VALID_JSON.replace("2026-10-21T12:00:00Z", timestamp)))
+                .isInstanceOf(InvalidEventException.class)
+                .hasMessageContaining("occurredAt");
     }
 
     @Test

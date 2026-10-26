@@ -1,6 +1,6 @@
 # Recruiter review and interview study guide
 
-Reviewed on 26 October 2026 against commit `ecbb650`.
+Originally reviewed on 26 October 2026 against commit `ecbb650`; timestamp-contract and retry-logging notes updated with subsequent changes.
 
 Use this alongside the [requirements map](../readme-reviewer.md). The answers below describe this implementation; improvement proposals are explicitly identified and are not implemented by this document.
 
@@ -10,7 +10,7 @@ This is a credible functional submission: it demonstrates a real Kafka batch lis
 
 The main interview challenge is the phrase **production-ready**. The code demonstrates important reliability mechanisms, but operational policies, realistic load results, deployment hardening and a current published coverage artifact still need attention. Present these limits openly instead of promising a complete banking production platform.
 
-At the reviewed baseline, the latest local reports contain **91 unit tests and 27 integration tests**, with no failures. Fresh coverage is **238/247 lines (96.4%) and 41/52 branches (78.8%)**. These describe that run, not a permanent guarantee; the checked-in coverage snapshot is older.
+At the original reviewed baseline, the latest local reports contain **91 unit tests and 27 integration tests**, with no failures. Fresh coverage is **238/247 lines (96.4%) and 41/52 branches (78.8%)**. These describe that run, not a permanent guarantee; the checked-in coverage snapshot is older.
 
 ### Improvements worth considering
 
@@ -20,7 +20,7 @@ At the reviewed baseline, the latest local reports contain **91 unit tests and 2
 | Small correctness safeguard | [Topic properties](../src/main/java/com/example/fundorders/config/KafkaTopicProperties.java) validate nonblank names but allow identical source and DLQ names. | Reject equal names at startup. Otherwise, invalid records can be recovered back into their own input topic indefinitely. Also validate retry durations/concurrency where currently supplied through `@Value`. |
 | Small configuration fix | [application.yml](../src/main/resources/application.yml) reads `APP_KAFKA_GROUP_ID`, but [Compose](../compose.yaml) does not forward it to the app. | Add the group variable to the Compose environment and sample environment file. Setting it in the host `.env` currently does not by itself pass it into the container. |
 | Strong interview evidence | There is batch correctness coverage but no recorded throughput/latency measurement. | Measure realistic batches and database latency, including slow processing. Report throughput, latency, lag and poll duration before choosing bulk writes. |
-| Before real deployment | [Retry handling](../src/main/java/com/example/fundorders/config/KafkaBatchConfiguration.java) retries retryable failures indefinitely and periodically logs them; Spring fatal defaults also send some programming/conversion failures straight to recovery. Only health is exposed through Actuator configuration. | Review the full exception classification policy, including whether programming errors should be recovered, stopped or escalated. Define lag/retry/DLQ alerts, processing and publication metrics, operational ownership and escalation. Keep message identifiers out of metric labels; use structured logs for those. |
+| Before real deployment | [Retry handling](../src/main/java/com/example/fundorders/config/KafkaBatchConfiguration.java) retries retryable failures indefinitely; the custom periodic retry listener has been removed; Spring fatal defaults also send some programming/conversion failures straight to recovery. Only health is exposed through Actuator configuration. | Review the full exception classification policy, including whether programming errors should be recovered, stopped or escalated. Define lag/retry/DLQ alerts, processing and publication metrics, operational ownership and escalation. Keep message identifiers out of metric labels; use structured logs for those. |
 | Before real deployment | Producer durability settings such as `acks` and `enable.idempotence` are not explicit in application configuration. | Make the intended settings explicit and verify the effective configuration. Choose broker replication, minimum in-sync replicas, retention and Kafka authentication/TLS for the actual environment. |
 | Before real deployment | The raw endpoint reads unrestricted text into memory; Kubernetes has no supplied ingress limits. | Set and verify ingress body-size limits, request quotas and timeouts. A Kafka size limit rejects too late to bound HTTP body allocation. |
 | Before real deployment | The [deployment example](../deploy/kubernetes/deployment.yaml) uses external ConfigMap/Secret references and a placeholder image; there is no supplied nonroot security context or network policy. [Kafka UI](../compose.yaml) uses `latest`. | Pin an approved UI image, provide real deployment resources and harden the runtime. Decide on TLS, nonroot execution, secret delivery and access to DLQ data. Compose Kafka has no declared persistent data volume, so it is a local demo, not durable infrastructure. |
@@ -135,9 +135,9 @@ The query sorts by `occurred_at DESC, event_id DESC`, backed by a matching [inde
 
 `eventId` identifies a particular event and drives deduplication. `orderId` groups several status updates for one order and supplies the typed Kafka key. `schemaVersion` identifies the event contract; the codec currently accepts only version 1. The event is a status notification, not an investment instruction containing an instrument, amount or settlement calculation.
 
-### 22. Why explicitly check timestamp arithmetic?
+### 22. What timestamp contract prevents persistence overflow?
 
-Java `Instant` can represent values that JDBC timestamp conversion cannot handle. Some fail before PostgreSQL can return a datetime-overflow SQLSTATE, so handling only SQLSTATE `22008` was insufficient. The service checks epoch milliseconds and whole-second multiplication, maps overflow to a permanent event failure, and leaves unrelated database errors retryable. Consumer-side validation still matters because direct Kafka publishers can bypass the HTTP API.
+The shared codec accepts ISO-8601 instants from `0001-01-01T00:00:00Z` through `9999-12-31T23:59:59.999999Z`, inclusive, evaluated in UTC. Typed requests outside the range return 400 before publication; raw/direct Kafka events fail consumer validation and reach the DLQ. The maximum is the last supported microsecond so database rounding cannot cross into year 10000. This replaces JDBC arithmetic checks in the persistence service with an explicit input contract. `Instant` remains the internal type; SQLSTATE 22008 handling remains defensive, and unrelated database errors still retry.
 
 ### 23. How would you evolve the schema and database?
 

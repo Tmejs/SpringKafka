@@ -1,0 +1,5 @@
+# Checkpoint 20: supported timestamp contract
+
+User approved ISO-8601 Instant input limited to UTC years0001–9999, shared validation for typed HTTP400 and consumer/DLQ, and removal of JDBC arithmetic checks from ProcessedEventService. Use clear minimum/maximum Instants in FundOrderEventCodec, with inclusive upper endpoint at PostgreSQL microsecond precision so rounding cannot cross into year10000. Document the exact bounds and retain ordinary fractional-second input within the range. Validate normalized UTC instant rather than introduce a custom JSON parser or change Instant to a string/local datetime.
+
+Preserve user retry-listener/comment removals separately (authorized asynchronously). Write failing codec/MVC/service tests, implement range validation, extend existing end-to-end scenario with typed400/raw202->DLQ, update generated OpenAPI/AsyncAPI and study notes, run complete Java21/Java25 gates, independent review and checkpoint push/no-ff merge verification. Do not restore deleted parameterized timestamp integration cases.
